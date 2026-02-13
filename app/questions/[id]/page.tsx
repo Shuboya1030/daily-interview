@@ -21,6 +21,7 @@ interface QuestionDetail {
   content: string
   frequency: number
   question_type: string | null
+  question_types: string[]
   companies: string[]
   updated_at: string
   raw_questions: RawQuestion[]
@@ -108,12 +109,19 @@ export default function QuestionDetailPage() {
             </span>
           ))}
 
-          {/* Type */}
-          {question.question_type && (
-            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-              {question.question_type}
+          {/* Types (multi-label) */}
+          {(question.question_types || []).map(type => (
+            <span
+              key={type}
+              className={`px-3 py-1 text-sm rounded-full ${
+                type === 'AI Domain'
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-green-100 text-green-700'
+              }`}
+            >
+              {type}
             </span>
-          )}
+          ))}
         </div>
       </div>
 

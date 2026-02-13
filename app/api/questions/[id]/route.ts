@@ -72,6 +72,7 @@ export async function GET(
       content: merged.canonical_content,
       frequency: merged.frequency,
       question_type: merged.question_type,
+      question_types: merged.question_types || (merged.question_type ? [merged.question_type] : []),
       companies,
       updated_at: merged.updated_at,
       raw_questions: rawQuestions,

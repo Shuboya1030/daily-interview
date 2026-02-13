@@ -12,6 +12,7 @@ from typing import List, Dict
 from config import SCRAPE_DAYS_BACK, SOURCES, OPENAI_API_KEY
 from database.db import DatabaseManager
 from processors.normalizer import DataNormalizer
+from processors.llm_processor import LLMProcessor
 from processors.embeddings import EmbeddingProcessor
 from scrapers import PMExercisesScraper, NowcoderScraper, StellarPeersScraper
 
@@ -121,13 +122,14 @@ class DailyInterviewScraper:
 
         logger.info(f"✓ Normalized {len(normalized_questions)} questions")
 
-        # Step 3: Deduplicate existing raw questions + add unique constraint
-        logger.info("\nDeduplicating raw questions and adding unique constraint...")
+        # Step 3: Ensure DB schema is up-to-date + deduplicate
+        logger.info("\nMigrating schema and deduplicating...")
         try:
+            self.db.ensure_llm_columns()
             removed = self.db.deduplicate_raw_questions()
-            logger.info(f"✓ Removed {removed} duplicate raw questions, unique constraint active")
+            logger.info(f"✓ Schema up-to-date, removed {removed} duplicates")
         except Exception as e:
-            logger.error(f"✗ Deduplication failed: {str(e)}", exc_info=True)
+            logger.error(f"✗ Schema migration/dedup failed: {str(e)}", exc_info=True)
 
         # Step 4: Store in database (upsert with unique constraint)
         logger.info("\nStoring questions in database...")
@@ -140,8 +142,23 @@ class DailyInterviewScraper:
             logger.error(f"✗ Database insertion failed: {str(e)}", exc_info=True)
             return
 
-        # Step 5: Run embedding-based similarity detection
+        # Step 5: LLM processing (translate + classify)
         if OPENAI_API_KEY:
+            logger.info("\nRunning LLM processing (translate + classify)...")
+            try:
+                unprocessed = self.db.get_llm_unprocessed_questions()
+                if unprocessed:
+                    logger.info(f"Found {len(unprocessed)} questions to LLM-process")
+                    llm = LLMProcessor()
+                    results = llm.process_questions(unprocessed)
+                    self.db.update_llm_results(results)
+                    logger.info(f"✓ LLM processed {len(results)} questions")
+                else:
+                    logger.info("✓ All questions already LLM-processed")
+            except Exception as e:
+                logger.error(f"✗ LLM processing failed: {str(e)}", exc_info=True)
+
+            # Step 6: Embedding-based similarity detection
             logger.info("\nRunning embedding-based similarity detection...")
             try:
                 embedding_processor = EmbeddingProcessor()
@@ -150,7 +167,7 @@ class DailyInterviewScraper:
             except Exception as e:
                 logger.error(f"✗ Embedding processing failed: {str(e)}", exc_info=True)
         else:
-            logger.warning("⚠ OPENAI_API_KEY not set, skipping similarity detection")
+            logger.warning("⚠ OPENAI_API_KEY not set, skipping LLM + similarity detection")
 
         # Step 6: Get statistics
         logger.info("\nFetching database statistics...")

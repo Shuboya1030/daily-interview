@@ -49,21 +49,25 @@ class EmbeddingProcessor:
         b = np.array(b)
         return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
+    def _get_embed_text(self, q: Dict) -> str:
+        """Get the text to embed: prefer english_content over content"""
+        return q.get('english_content') or q.get('content', '')
+
     def find_groups(self, questions: List[Dict]) -> List[List[Dict]]:
         """
-        Group similar questions together.
+        Group similar questions together using english_content for embedding.
 
         Args:
-            questions: List of raw question dicts with 'id', 'content', 'source', etc.
+            questions: List of raw question dicts with 'id', 'content',
+                       'english_content', 'source', etc.
 
         Returns:
             List of groups, where each group is a list of similar questions.
-            Single questions (no duplicates) are groups of size 1.
         """
         if not questions:
             return []
 
-        texts = [q['content'] for q in questions]
+        texts = [self._get_embed_text(q) for q in questions]
         logger.info(f"Generating embeddings for {len(texts)} questions...")
 
         embeddings = self.generate_embeddings(texts)
@@ -93,8 +97,8 @@ class EmbeddingProcessor:
                     assigned.add(j)
                     logger.debug(
                         f"Merged: [{sim:.3f}] "
-                        f"'{questions[i]['content'][:50]}...' "
-                        f"<-> '{questions[j]['content'][:50]}...'"
+                        f"'{texts[i][:50]}...' "
+                        f"<-> '{texts[j][:50]}...'"
                     )
 
             groups.append(group)
@@ -111,8 +115,19 @@ class EmbeddingProcessor:
 
     def select_canonical(self, group: List[Dict]) -> str:
         """Select the canonical (best) version of a question from a group.
-        Strategy: pick the longest version."""
-        return max(group, key=lambda q: len(q.get('content', '')))['content']
+        Strategy: pick the longest english_content version."""
+        return max(group, key=lambda q: len(self._get_embed_text(q)))['english_content'] or \
+               max(group, key=lambda q: len(q.get('content', '')))['content']
+
+    def _aggregate_types(self, group: List[Dict]) -> List[str]:
+        """Aggregate llm_types across all questions in a group (union)"""
+        all_types = set()
+        for q in group:
+            llm_types = q.get('llm_types')
+            if llm_types:
+                for t in llm_types:
+                    all_types.add(t)
+        return sorted(all_types) if all_types else []
 
     def process_and_merge(self, db_manager) -> Dict:
         """
@@ -143,15 +158,15 @@ class EmbeddingProcessor:
 
         for group in groups:
             canonical = self.select_canonical(group)
-            question_type = next(
-                (q.get('question_type') for q in group if q.get('question_type')),
-                None
-            )
+            question_types = self._aggregate_types(group)
+            # Keep first non-null single type for backward compat
+            question_type = question_types[0] if question_types else None
 
             # Create merged question
             merged_id = db_manager.create_merged_question(
                 content=canonical,
-                question_type=question_type
+                question_type=question_type,
+                question_types=question_types or None,
             )
 
             # Update frequency

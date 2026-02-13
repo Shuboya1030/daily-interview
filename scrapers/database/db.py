@@ -120,7 +120,8 @@ class DatabaseManager:
             return [dict(q) for q in questions]
 
     @staticmethod
-    def create_merged_question(content: str, question_type: Optional[str] = None) -> str:
+    def create_merged_question(content: str, question_type: Optional[str] = None,
+                               question_types: Optional[List[str]] = None) -> str:
         """
         Create a new merged question
 
@@ -131,12 +132,12 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             query = """
-            INSERT INTO merged_questions (canonical_content, question_type, frequency)
-            VALUES (%s, %s, 1)
+            INSERT INTO merged_questions (canonical_content, question_type, question_types, frequency)
+            VALUES (%s, %s, %s, 1)
             RETURNING id
             """
 
-            cursor.execute(query, (content, question_type))
+            cursor.execute(query, (content, question_type, question_types))
             merged_id = cursor.fetchone()[0]
             cursor.close()
 
@@ -217,6 +218,77 @@ class DatabaseManager:
             cursor.close()
 
     @staticmethod
+    def ensure_llm_columns():
+        """Add LLM-related columns if they don't exist"""
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                DO $$
+                BEGIN
+                    -- raw_questions: LLM processing columns
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'raw_questions' AND column_name = 'english_content'
+                    ) THEN
+                        ALTER TABLE raw_questions ADD COLUMN english_content TEXT;
+                    END IF;
+
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'raw_questions' AND column_name = 'llm_types'
+                    ) THEN
+                        ALTER TABLE raw_questions ADD COLUMN llm_types TEXT[];
+                    END IF;
+
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'raw_questions' AND column_name = 'llm_processed'
+                    ) THEN
+                        ALTER TABLE raw_questions ADD COLUMN llm_processed BOOLEAN DEFAULT FALSE;
+                    END IF;
+
+                    -- merged_questions: multi-type column
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'merged_questions' AND column_name = 'question_types'
+                    ) THEN
+                        ALTER TABLE merged_questions ADD COLUMN question_types TEXT[];
+                    END IF;
+                END $$;
+            """)
+            cursor.close()
+
+    @staticmethod
+    def get_llm_unprocessed_questions() -> List[Dict]:
+        """Get raw questions that haven't been LLM-processed yet"""
+        with get_db_connection() as conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("""
+                SELECT id, content, source, company, question_type
+                FROM raw_questions
+                WHERE llm_processed = FALSE OR llm_processed IS NULL
+                ORDER BY scraped_at DESC
+            """)
+            questions = cursor.fetchall()
+            cursor.close()
+            return [dict(q) for q in questions]
+
+    @staticmethod
+    def update_llm_results(results: List[Dict]):
+        """Batch update raw questions with LLM results"""
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            for r in results:
+                cursor.execute("""
+                    UPDATE raw_questions
+                    SET english_content = %s,
+                        llm_types = %s,
+                        llm_processed = TRUE
+                    WHERE id = %s
+                """, (r['english_content'], r['llm_types'], str(r['id'])))
+            cursor.close()
+
+    @staticmethod
     def deduplicate_raw_questions() -> int:
         """
         Remove duplicate raw questions and add unique constraint.
@@ -266,7 +338,8 @@ class DatabaseManager:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
             query = """
-            SELECT id, content, source, source_url, company, question_type, metadata
+            SELECT id, content, english_content, source, source_url,
+                   company, question_type, llm_types, metadata
             FROM raw_questions
             ORDER BY scraped_at DESC
             """

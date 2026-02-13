@@ -10,6 +10,7 @@ interface Question {
   company: string | null
   companies: string[]
   question_type: string | null
+  question_types: string[]
   updated_at: string
 }
 
@@ -173,12 +174,19 @@ export default function QuestionsPage() {
                         </span>
                       ))}
 
-                      {/* Type tag */}
-                      {question.question_type && (
-                        <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                          {question.question_type}
+                      {/* Type tags (multi-label) */}
+                      {(question.question_types || []).map(type => (
+                        <span
+                          key={type}
+                          className={`px-3 py-1 text-sm rounded-full ${
+                            type === 'AI Domain'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-green-100 text-green-700'
+                          }`}
+                        >
+                          {type}
                         </span>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>

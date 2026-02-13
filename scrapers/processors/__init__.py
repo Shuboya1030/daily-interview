@@ -1,2 +1,3 @@
 from processors.normalizer import DataNormalizer
+from processors.llm_processor import LLMProcessor
 from processors.embeddings import EmbeddingProcessor
