@@ -49,7 +49,10 @@ class DatabaseManager:
             INSERT INTO raw_questions
                 (content, source, source_url, company, question_type, metadata, published_at)
             VALUES %s
-            ON CONFLICT DO NOTHING
+            ON CONFLICT (content, source) DO UPDATE SET
+                company = COALESCE(EXCLUDED.company, raw_questions.company),
+                question_type = COALESCE(EXCLUDED.question_type, raw_questions.question_type),
+                metadata = EXCLUDED.metadata
             RETURNING id
             """
 
@@ -212,6 +215,49 @@ class DatabaseManager:
 
             cursor.execute(query, (merged_id, company_id))
             cursor.close()
+
+    @staticmethod
+    def deduplicate_raw_questions() -> int:
+        """
+        Remove duplicate raw questions and add unique constraint.
+        Keeps the oldest row for each (content, source) pair.
+        Returns number of duplicates removed.
+        """
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Count before
+            cursor.execute("SELECT COUNT(*) FROM raw_questions")
+            before = cursor.fetchone()[0]
+
+            # Delete duplicates, keeping the earliest scraped_at for each (content, source)
+            cursor.execute("""
+                DELETE FROM raw_questions
+                WHERE id NOT IN (
+                    SELECT DISTINCT ON (content, source) id
+                    FROM raw_questions
+                    ORDER BY content, source, scraped_at ASC
+                )
+            """)
+            removed = cursor.rowcount
+
+            # Add unique constraint if not exists
+            cursor.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'uq_raw_questions_content_source'
+                    ) THEN
+                        ALTER TABLE raw_questions
+                        ADD CONSTRAINT uq_raw_questions_content_source
+                        UNIQUE (content, source);
+                    END IF;
+                END $$;
+            """)
+
+            cursor.close()
+            return removed
 
     @staticmethod
     def get_all_raw_questions() -> List[Dict]:

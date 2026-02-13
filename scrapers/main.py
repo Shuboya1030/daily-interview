@@ -132,7 +132,15 @@ class DailyInterviewScraper:
             logger.error(f"✗ Database insertion failed: {str(e)}", exc_info=True)
             return
 
-        # Step 4: Run embedding-based similarity detection
+        # Step 4: Deduplicate raw questions
+        logger.info("\nDeduplicating raw questions...")
+        try:
+            removed = self.db.deduplicate_raw_questions()
+            logger.info(f"✓ Removed {removed} duplicate raw questions")
+        except Exception as e:
+            logger.error(f"✗ Deduplication failed: {str(e)}", exc_info=True)
+
+        # Step 5: Run embedding-based similarity detection
         if OPENAI_API_KEY:
             logger.info("\nRunning embedding-based similarity detection...")
             try:
@@ -144,7 +152,7 @@ class DailyInterviewScraper:
         else:
             logger.warning("⚠ OPENAI_API_KEY not set, skipping similarity detection")
 
-        # Step 5: Get statistics
+        # Step 6: Get statistics
         logger.info("\nFetching database statistics...")
 
         try:
