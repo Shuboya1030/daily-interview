@@ -55,6 +55,12 @@ class StellarPeersScraper(BaseScraper):
             self.logger.error("No URLs found in sitemaps")
             return []
 
+        # Limit pages for MVP (avoid long-running scrapes)
+        MAX_PAGES = 100
+        if len(question_urls) > MAX_PAGES:
+            self.logger.info(f"Limiting to {MAX_PAGES} questions (out of {len(question_urls)})")
+            question_urls = question_urls[:MAX_PAGES]
+
         # Step 2: Scrape each question page
         total = len(question_urls)
         for idx, url_info in enumerate(question_urls):
