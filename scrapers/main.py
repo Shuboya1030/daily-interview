@@ -121,24 +121,24 @@ class DailyInterviewScraper:
 
         logger.info(f"✓ Normalized {len(normalized_questions)} questions")
 
-        # Step 3: Store in database
+        # Step 3: Deduplicate existing raw questions + add unique constraint
+        logger.info("\nDeduplicating raw questions and adding unique constraint...")
+        try:
+            removed = self.db.deduplicate_raw_questions()
+            logger.info(f"✓ Removed {removed} duplicate raw questions, unique constraint active")
+        except Exception as e:
+            logger.error(f"✗ Deduplication failed: {str(e)}", exc_info=True)
+
+        # Step 4: Store in database (upsert with unique constraint)
         logger.info("\nStoring questions in database...")
 
         try:
             inserted_count = self.db.insert_raw_questions(normalized_questions)
-            logger.info(f"✓ Inserted {inserted_count} new questions into database")
+            logger.info(f"✓ Upserted {inserted_count} questions into database")
 
         except Exception as e:
             logger.error(f"✗ Database insertion failed: {str(e)}", exc_info=True)
             return
-
-        # Step 4: Deduplicate raw questions
-        logger.info("\nDeduplicating raw questions...")
-        try:
-            removed = self.db.deduplicate_raw_questions()
-            logger.info(f"✓ Removed {removed} duplicate raw questions")
-        except Exception as e:
-            logger.error(f"✗ Deduplication failed: {str(e)}", exc_info=True)
 
         # Step 5: Run embedding-based similarity detection
         if OPENAI_API_KEY:
