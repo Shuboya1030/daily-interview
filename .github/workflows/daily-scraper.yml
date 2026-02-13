@@ -14,15 +14,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Cache pip dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('scrapers/requirements.txt') }}
@@ -53,7 +53,7 @@ jobs:
 
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: scraper-logs
           path: scrapers/logs/
@@ -62,5 +62,5 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: |
-          echo "❌ Scraper failed! Check logs for details."
+          echo "Scraper failed! Check logs for details."
           echo "View logs at: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
