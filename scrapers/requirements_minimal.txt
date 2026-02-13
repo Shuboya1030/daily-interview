@@ -1,0 +1,5 @@
+# 最小依赖 - Windows测试版
+playwright==1.41.0
+beautifulsoup4==4.12.3
+requests==2.31.0
+tenacity==8.2.3

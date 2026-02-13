@@ -1,0 +1,7 @@
+# 简化版依赖 - 用于测试爬虫（不需要数据库）
+playwright==1.41.0
+beautifulsoup4==4.12.3
+requests==2.31.0
+lxml==5.1.0
+python-dateutil==2.8.2
+tenacity==8.2.3

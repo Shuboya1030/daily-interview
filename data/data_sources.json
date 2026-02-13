@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "last_updated": "2026-02-12",
+    "total_sources": 4,
+    "accessible_sources": 3
+  },
+  "sources": [
+    {
+      "id": "nowcoder",
+      "name": "牛客网",
+      "url": "https://www.nowcoder.com/interview/center?jobId=11229&query=",
+      "status": "accessible",
+      "priority": "high",
+      "login_required": false,
+      "content_type": "dynamic",
+      "technology": "Vue.js",
+      "data_structure": {
+        "company": true,
+        "position": true,
+        "question_count": true,
+        "date": "unknown",
+        "question_type": true
+      },
+      "scraping_notes": [
+        "需要处理JS渲染（使用Puppeteer/Playwright）",
+        "数据存储在 window.__INITIAL_STATE__",
+        "按公司和岗位双重维度组织"
+      ],
+      "estimated_volume": "medium",
+      "language": "zh-CN"
+    },
+    {
+      "id": "stellarpeers",
+      "name": "StellarPeers",
+      "url": "https://stellarpeers.com/interview-questions/",
+      "status": "accessible",
+      "priority": "medium",
+      "login_required": false,
+      "content_type": "dynamic",
+      "technology": "AJAX",
+      "data_structure": {
+        "solved_questions": true,
+        "mock_interviews": true,
+        "community_shared": true
+      },
+      "scraping_notes": [
+        "异步加载内容",
+        "使用Mixpanel追踪",
+        "支持预加载优化"
+      ],
+      "estimated_volume": "medium",
+      "language": "en"
+    },
+    {
+      "id": "pm_exercises",
+      "name": "Product Management Exercises",
+      "url": "https://www.productmanagementexercises.com/interview-questions",
+      "status": "accessible",
+      "priority": "critical",
+      "login_required": false,
+      "paywall": "partial",
+      "content_type": "mixed",
+      "technology": "React + Elasticsearch",
+      "data_structure": {
+        "question_title": true,
+        "company": true,
+        "category": true,
+        "answer_count": true,
+        "view_count": true,
+        "answers_preview": true,
+        "date": "unknown"
+      },
+      "statistics": {
+        "total_questions": "2000+",
+        "companies": "100+",
+        "by_company": {
+          "Google": 942,
+          "Meta": 751,
+          "Amazon": 274
+        },
+        "by_category": {
+          "Product Design": 903,
+          "Product Strategy": 502,
+          "Metrics": 248
+        }
+      },
+      "scraping_notes": [
+        "最有价值的信息源！",
+        "初始HTML包含预加载JSON数据",
+        "部分内容需要付费但大部分免费",
+        "支持按公司、分类、热度排序"
+      ],
+      "estimated_volume": "very_high",
+      "language": "en"
+    },
+    {
+      "id": "google_sheet",
+      "name": "PMA Question Bank (Google Sheets)",
+      "url": "https://docs.google.com/spreadsheets/d/1Ir4nfaMFL73pLbpqL5MmUhsJP4sPLpaJgq1BMFkDsEE/edit?gid=1083036292#gid=1083036292",
+      "status": "requires_special_handling",
+      "priority": "medium",
+      "login_required": true,
+      "content_type": "spreadsheet",
+      "technology": "Google Sheets",
+      "scraping_notes": [
+        "标准爬虫无法访问",
+        "需要Google Sheets API或手动导出"
+      ],
+      "options": [
+        {
+          "option": "A",
+          "method": "Manual CSV Export",
+          "description": "用户定期导出CSV，我们导入系统",
+          "pros": ["简单", "无需API认证"],
+          "cons": ["需要手动操作", "不能自动更新"]
+        },
+        {
+          "option": "B",
+          "method": "Google Sheets API",
+          "description": "集成Google Sheets API自动读取",
+          "pros": ["完全自动化", "实时更新"],
+          "cons": ["需要OAuth认证", "开发复杂度高"]
+        },
+        {
+          "option": "C",
+          "method": "Public CSV URL",
+          "description": "如果Sheet是公开的，使用CSV导出URL",
+          "pros": ["简单", "可自动化"],
+          "cons": ["需要Sheet是公开可访问的"]
+        }
+      ],
+      "estimated_volume": "unknown",
+      "language": "unknown"
+    }
+  ],
+  "scraping_strategy": {
+    "phase_1_mvp": [
+      "pm_exercises (最优先，数据量最大)",
+      "nowcoder (中文题库)",
+      "stellarpeers"
+    ],
+    "phase_2": [
+      "google_sheet (待定处理方案)"
+    ],
+    "tools_needed": [
+      "Puppeteer/Playwright (处理JS渲染)",
+      "Scrapy or requests (处理静态内容)",
+      "OpenAI API (GPT for similarity detection)"
+    ]
+  }
+}

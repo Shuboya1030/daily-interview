@@ -1,0 +1,158 @@
+{
+  "metadata": {
+    "version": "0.1",
+    "last_updated": "2026-02-12",
+    "description": "公司分类和行业标签系统"
+  },
+  "companies": [
+    {
+      "name": "Google",
+      "type": "FAANG",
+      "industry": "Search & Cloud",
+      "aliases": ["Alphabet"]
+    },
+    {
+      "name": "Meta",
+      "type": "FAANG",
+      "industry": "Social Media",
+      "aliases": ["Facebook"]
+    },
+    {
+      "name": "Amazon",
+      "type": "FAANG",
+      "industry": "E-commerce & Cloud",
+      "aliases": ["AWS"]
+    },
+    {
+      "name": "Apple",
+      "type": "FAANG",
+      "industry": "Consumer Electronics"
+    },
+    {
+      "name": "Microsoft",
+      "type": "FAANG",
+      "industry": "Office & Cloud"
+    },
+    {
+      "name": "Netflix",
+      "type": "FAANG",
+      "industry": "Streaming"
+    },
+    {
+      "name": "Stripe",
+      "type": "Unicorn",
+      "industry": "Fintech"
+    },
+    {
+      "name": "OpenAI",
+      "type": "Unicorn",
+      "industry": "AI"
+    },
+    {
+      "name": "Anthropic",
+      "type": "Unicorn",
+      "industry": "AI"
+    },
+    {
+      "name": "Databricks",
+      "type": "Unicorn",
+      "industry": "Data & Analytics"
+    },
+    {
+      "name": "Airbnb",
+      "type": "Unicorn",
+      "industry": "Travel & Hospitality"
+    },
+    {
+      "name": "Uber",
+      "type": "Unicorn",
+      "industry": "Transportation"
+    },
+    {
+      "name": "LinkedIn",
+      "type": "Big Tech",
+      "industry": "Professional Network"
+    },
+    {
+      "name": "Salesforce",
+      "type": "Big Tech",
+      "industry": "CRM & SaaS"
+    }
+  ],
+  "industries": [
+    {
+      "name": "Fintech",
+      "description": "金融科技",
+      "examples": ["Stripe", "Square", "PayPal", "Robinhood"]
+    },
+    {
+      "name": "Health",
+      "description": "医疗健康",
+      "examples": ["Oscar Health", "Teladoc", "Livongo"]
+    },
+    {
+      "name": "AI",
+      "description": "人工智能",
+      "examples": ["OpenAI", "Anthropic", "Scale AI", "Hugging Face"]
+    },
+    {
+      "name": "Embodied AI",
+      "description": "具身智能/机器人",
+      "examples": ["Tesla", "Boston Dynamics", "Figure AI"]
+    },
+    {
+      "name": "Office & Productivity",
+      "description": "办公生产力工具",
+      "examples": ["Microsoft", "Notion", "Slack", "Zoom"]
+    },
+    {
+      "name": "E-commerce",
+      "description": "电商",
+      "examples": ["Amazon", "Shopify"]
+    },
+    {
+      "name": "Social Media",
+      "description": "社交媒体",
+      "examples": ["Meta", "Twitter/X", "TikTok"]
+    },
+    {
+      "name": "Cloud & Infrastructure",
+      "description": "云计算与基础设施",
+      "examples": ["AWS", "Google Cloud", "Azure"]
+    },
+    {
+      "name": "Data & Analytics",
+      "description": "数据与分析",
+      "examples": ["Databricks", "Snowflake", "Palantir"]
+    },
+    {
+      "name": "Transportation",
+      "description": "交通出行",
+      "examples": ["Uber", "Lyft", "Waymo"]
+    },
+    {
+      "name": "Travel & Hospitality",
+      "description": "旅游与住宿",
+      "examples": ["Airbnb", "Booking.com", "Expedia"]
+    }
+  ],
+  "company_types": [
+    {
+      "type": "FAANG",
+      "description": "Facebook, Apple, Amazon, Netflix, Google (Meta, Microsoft)"
+    },
+    {
+      "type": "Unicorn",
+      "description": "估值超过10亿美元的私营创业公司或新上市公司"
+    },
+    {
+      "type": "Big Tech",
+      "description": "其他大型科技公司"
+    }
+  ],
+  "notes": [
+    "此列表会根据爬取到的数据动态更新",
+    "行业分类可能有重叠（如Amazon既是E-commerce又是Cloud）",
+    "用户可以在管理界面手动调整公司的行业标签"
+  ]
+}
