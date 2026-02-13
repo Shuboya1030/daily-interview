@@ -214,6 +214,49 @@ class DatabaseManager:
             cursor.close()
 
     @staticmethod
+    def get_all_raw_questions() -> List[Dict]:
+        """Get all raw questions for embedding processing"""
+        with get_db_connection() as conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+            query = """
+            SELECT id, content, source, source_url, company, question_type, metadata
+            FROM raw_questions
+            ORDER BY scraped_at DESC
+            """
+
+            cursor.execute(query)
+            questions = cursor.fetchall()
+            cursor.close()
+
+            return [dict(q) for q in questions]
+
+    @staticmethod
+    def clear_merged_data():
+        """Clear all merged questions and mappings for a full rebuild"""
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM question_companies")
+            cursor.execute("DELETE FROM question_mappings")
+            cursor.execute("DELETE FROM merged_questions")
+            cursor.close()
+
+    @staticmethod
+    def update_merged_frequency(merged_id: str, count: int):
+        """Set frequency for a merged question directly"""
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            query = """
+            UPDATE merged_questions
+            SET frequency = %s, updated_at = NOW()
+            WHERE id = %s
+            """
+
+            cursor.execute(query, (count, merged_id))
+            cursor.close()
+
+    @staticmethod
     def get_stats() -> Dict:
         """Get database statistics"""
         with get_db_connection() as conn:

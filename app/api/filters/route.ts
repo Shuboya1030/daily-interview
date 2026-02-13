@@ -8,41 +8,16 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function GET() {
   try {
-    // Get unique companies
-    const { data: companies } = await supabase
-      .from('raw_questions')
-      .select('company')
-      .not('company', 'is', null)
+    // Check if merged data exists
+    const { count: mergedCount } = await supabase
+      .from('merged_questions')
+      .select('*', { count: 'exact', head: true })
 
-    const uniqueCompanies = [...new Set(companies?.map(c => c.company) || [])]
-      .filter(Boolean)
-      .sort()
-
-    // Get unique question types
-    const { data: types } = await supabase
-      .from('raw_questions')
-      .select('question_type')
-      .not('question_type', 'is', null)
-
-    const uniqueTypes = [...new Set(types?.map(t => t.question_type) || [])]
-      .filter(Boolean)
-      .sort()
-
-    // Get unique sources
-    const { data: sources } = await supabase
-      .from('raw_questions')
-      .select('source')
-
-    const uniqueSources = [...new Set(sources?.map(s => s.source) || [])]
-      .filter(Boolean)
-      .sort()
-
-    return NextResponse.json({
-      companies: uniqueCompanies,
-      types: uniqueTypes,
-      sources: uniqueSources,
-    })
-
+    if (mergedCount && mergedCount > 0) {
+      return await getMergedFilters()
+    } else {
+      return await getRawFilters()
+    }
   } catch (error: any) {
     console.error('API error:', error)
     return NextResponse.json(
@@ -50,4 +25,64 @@ export async function GET() {
       { status: 500 }
     )
   }
+}
+
+async function getMergedFilters() {
+  // Get companies from question_companies join
+  const { data: companyLinks } = await supabase
+    .from('question_companies')
+    .select('company_id')
+
+  const companyIds = [...new Set(companyLinks?.map(l => l.company_id) || [])]
+
+  let uniqueCompanies: string[] = []
+  if (companyIds.length > 0) {
+    const { data: companies } = await supabase
+      .from('companies')
+      .select('name')
+      .in('id', companyIds)
+
+    uniqueCompanies = (companies?.map(c => c.name) || []).sort()
+  }
+
+  // Get unique question types from merged_questions
+  const { data: types } = await supabase
+    .from('merged_questions')
+    .select('question_type')
+    .not('question_type', 'is', null)
+
+  const uniqueTypes = [...new Set(types?.map(t => t.question_type) || [])]
+    .filter(Boolean)
+    .sort()
+
+  return NextResponse.json({
+    companies: uniqueCompanies,
+    types: uniqueTypes,
+  })
+}
+
+async function getRawFilters() {
+  // Fallback: get filters from raw_questions
+  const { data: companies } = await supabase
+    .from('raw_questions')
+    .select('company')
+    .not('company', 'is', null)
+
+  const uniqueCompanies = [...new Set(companies?.map(c => c.company) || [])]
+    .filter(Boolean)
+    .sort()
+
+  const { data: types } = await supabase
+    .from('raw_questions')
+    .select('question_type')
+    .not('question_type', 'is', null)
+
+  const uniqueTypes = [...new Set(types?.map(t => t.question_type) || [])]
+    .filter(Boolean)
+    .sort()
+
+  return NextResponse.json({
+    companies: uniqueCompanies,
+    types: uniqueTypes,
+  })
 }

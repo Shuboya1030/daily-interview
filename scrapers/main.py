@@ -9,9 +9,10 @@ import logging
 from datetime import datetime
 from typing import List, Dict
 
-from config import SCRAPE_DAYS_BACK, SOURCES
+from config import SCRAPE_DAYS_BACK, SOURCES, OPENAI_API_KEY
 from database.db import DatabaseManager
 from processors.normalizer import DataNormalizer
+from processors.embeddings import EmbeddingProcessor
 from scrapers import PMExercisesScraper, NowcoderScraper, StellarPeersScraper
 
 # Setup logging
@@ -131,7 +132,19 @@ class DailyInterviewScraper:
             logger.error(f"✗ Database insertion failed: {str(e)}", exc_info=True)
             return
 
-        # Step 4: Get statistics
+        # Step 4: Run embedding-based similarity detection
+        if OPENAI_API_KEY:
+            logger.info("\nRunning embedding-based similarity detection...")
+            try:
+                embedding_processor = EmbeddingProcessor()
+                merge_stats = embedding_processor.process_and_merge(self.db)
+                logger.info(f"✓ Merge complete: {merge_stats}")
+            except Exception as e:
+                logger.error(f"✗ Embedding processing failed: {str(e)}", exc_info=True)
+        else:
+            logger.warning("⚠ OPENAI_API_KEY not set, skipping similarity detection")
+
+        # Step 5: Get statistics
         logger.info("\nFetching database statistics...")
 
         try:

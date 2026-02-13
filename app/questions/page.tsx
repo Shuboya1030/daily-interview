@@ -6,12 +6,11 @@ import Link from 'next/link'
 interface Question {
   id: string
   content: string
+  frequency: number
   company: string | null
+  companies: string[]
   question_type: string | null
-  source: string
-  source_url: string
-  scraped_at: string
-  metadata: any
+  updated_at: string
 }
 
 interface Filters {
@@ -74,7 +73,7 @@ export default function QuestionsPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">PM Interview Question Bank</h1>
         <p className="text-gray-600">
-          {total} questions collected from multiple sources
+          {total} questions collected from multiple sources, sorted by frequency
         </p>
       </div>
 
@@ -145,48 +144,46 @@ export default function QuestionsPage() {
       ) : (
         <div className="space-y-4">
           {questions.map((question) => (
-            <div
+            <Link
               key={question.id}
-              className="bg-white border rounded-lg p-6 hover:shadow-lg transition"
+              href={`/questions/${question.id}`}
+              className="block"
             >
-              {/* Question Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {question.content}
-                  </h3>
+              <div className="bg-white border rounded-lg p-6 hover:shadow-lg transition cursor-pointer">
+                {/* Question Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {question.content}
+                    </h3>
 
-                  {/* Tags - only company and type */}
-                  <div className="flex flex-wrap gap-2">
-                    {question.company && (
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                        {question.company}
-                      </span>
-                    )}
-                    {question.question_type && (
-                      <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                        {question.question_type}
-                      </span>
-                    )}
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2">
+                      {/* Frequency Badge */}
+                      {question.frequency > 1 && (
+                        <span className="px-3 py-1 bg-red-100 text-red-700 text-sm font-semibold rounded-full">
+                          {question.frequency}x
+                        </span>
+                      )}
+
+                      {/* Company tags */}
+                      {question.companies && question.companies.map(company => (
+                        <span key={company} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                          {company}
+                        </span>
+                      ))}
+
+                      {/* Type tag */}
+                      {question.question_type && (
+                        <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
+                          {question.question_type}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {/* Question Footer */}
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <div className="text-sm text-gray-500">
-                  {new Date(question.scraped_at).toLocaleDateString('en-US')}
-                </div>
-                <a
-                  href={question.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-                >
-                  View Source
-                </a>
-              </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
