@@ -1,224 +1,271 @@
 """
 Scraper for StellarPeers
+Strategy: Fetch question URLs from sitemap XML, then scrape each page
 URL: https://stellarpeers.com/interview-questions/
 """
 from typing import List, Dict
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
-import time
+import requests
 import re
+import time
+import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
 
 from scrapers.base import BaseScraper
+from config import USER_AGENT
 
 
 class StellarPeersScraper(BaseScraper):
-    """Scraper for StellarPeers"""
+    """Scraper for StellarPeers using sitemap + individual page scraping"""
+
+    SITEMAPS = [
+        'https://stellarpeers.com/sp_intvw_question-sitemap.xml',
+        'https://stellarpeers.com/sp_intvw_question-sitemap2.xml',
+    ]
 
     def __init__(self):
         super().__init__(
             source_name='stellarpeers',
             source_url='https://stellarpeers.com/interview-questions/'
         )
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': USER_AGENT,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        })
 
     def scrape(self, days_back: int = 90) -> List[Dict]:
         """
-        Scrape questions from StellarPeers
+        Scrape questions from StellarPeers via sitemap
 
-        Note: This site uses AJAX for loading content
+        Steps:
+        1. Fetch sitemap XML to get all question URLs + dates
+        2. Filter by days_back
+        3. Visit each question page to extract metadata
         """
         all_questions = []
 
-        with sync_playwright() as p:
-            self.logger.info("Launching browser...")
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
+        # Step 1: Get question URLs from sitemaps
+        self.logger.info("Fetching question URLs from sitemaps...")
+        question_urls = self._get_urls_from_sitemaps()
+        self.logger.info(f"Found {len(question_urls)} question URLs in sitemaps")
+
+        if not question_urls:
+            self.logger.error("No URLs found in sitemaps")
+            return []
+
+        # Step 2: Scrape each question page
+        total = len(question_urls)
+        for idx, url_info in enumerate(question_urls):
+            url = url_info['url']
+            lastmod = url_info.get('lastmod')
+
+            if idx > 0 and idx % 50 == 0:
+                self.logger.info(f"Progress: {idx}/{total} questions scraped")
 
             try:
-                # Navigate to main page
-                self.logger.info(f"Navigating to {self.source_url}")
-                page.goto(self.source_url, wait_until='networkidle', timeout=30000)
-
-                # Wait for content to load
-                time.sleep(3)
-
-                # Try different selectors for questions
-                selectors = [
-                    '.question-card',
-                    '.question-item',
-                    'article',
-                    '[class*="question"]',
-                    '.card',
-                ]
-
-                questions_found = False
-                for selector in selectors:
-                    try:
-                        page.wait_for_selector(selector, timeout=5000)
-                        questions = self._scrape_questions(page, selector)
-                        if questions:
-                            all_questions.extend(questions)
-                            questions_found = True
-                            break
-                    except:
-                        continue
-
-                if not questions_found:
-                    self.logger.warning("No questions found with standard selectors, trying fallback")
-                    # Fallback: get all links that might be questions
-                    questions = self._scrape_questions_fallback(page)
-                    all_questions.extend(questions)
-
-                # Try to load more by scrolling or clicking "Load More"
-                self._load_more_content(page)
-
-                # Scrape again after loading more
-                for selector in selectors:
-                    try:
-                        new_questions = self._scrape_questions(page, selector)
-                        for q in new_questions:
-                            if not any(existing.get('url') == q.get('url') for existing in all_questions):
-                                all_questions.append(q)
-                    except:
-                        continue
-
-            except PlaywrightTimeout as e:
-                self.logger.error(f"Timeout error: {str(e)}")
+                question = self._scrape_question_page(url, lastmod)
+                if question and question.get('content'):
+                    all_questions.append(question)
             except Exception as e:
-                self.logger.error(f"Error during scraping: {str(e)}", exc_info=True)
-            finally:
-                browser.close()
+                self.logger.warning(f"Error scraping {url}: {str(e)}")
+                continue
 
-        # Normalize all questions
+            # Polite delay
+            if idx % 10 == 0 and idx > 0:
+                time.sleep(1)
+
+        # Normalize
         normalized = [self._normalize_question(q) for q in all_questions]
         self.scraped_questions = normalized
 
-        self.logger.info(f"Total questions scraped: {len(normalized)}")
+        self.logger.info(f"Total questions scraped from StellarPeers: {len(normalized)}")
         return normalized
 
-    def _scrape_questions(self, page, selector: str) -> List[Dict]:
-        """Scrape questions using given selector"""
-        questions = []
+    def _get_urls_from_sitemaps(self) -> List[Dict]:
+        """Fetch and parse sitemap XMLs to get question URLs"""
+        urls = []
 
+        for sitemap_url in self.SITEMAPS:
+            try:
+                self.logger.info(f"Fetching sitemap: {sitemap_url}")
+                resp = self.session.get(sitemap_url, timeout=15)
+                resp.raise_for_status()
+
+                root = ET.fromstring(resp.content)
+                # Handle XML namespace
+                ns = {'ns': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+
+                for url_elem in root.findall('ns:url', ns):
+                    loc = url_elem.find('ns:loc', ns)
+                    lastmod = url_elem.find('ns:lastmod', ns)
+
+                    if loc is not None and loc.text:
+                        url_text = loc.text.strip()
+                        # Skip the collection index page
+                        if url_text.endswith('/interview-question-collection/'):
+                            continue
+
+                        entry = {'url': url_text}
+                        if lastmod is not None and lastmod.text:
+                            entry['lastmod'] = lastmod.text.strip()
+
+                        urls.append(entry)
+
+                self.logger.info(f"Got {len(urls)} URLs so far")
+
+            except Exception as e:
+                self.logger.error(f"Error fetching sitemap {sitemap_url}: {str(e)}")
+                continue
+
+        return urls
+
+    def _scrape_question_page(self, url: str, lastmod: str = None) -> Dict:
+        """Scrape a single question page for metadata"""
         try:
-            elements = page.locator(selector).all()
-            self.logger.info(f"Found {len(elements)} elements with selector '{selector}'")
+            resp = self.session.get(url, timeout=15)
+            resp.raise_for_status()
 
-            for element in elements:
-                try:
-                    data = {}
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            data = {}
 
-                    # Question content/title
-                    title_elem = element.locator('h2, h3, h4, .title, [class*="title"]').first
-                    if title_elem.count() > 0:
-                        data['content'] = title_elem.inner_text().strip()
-                    else:
-                        # Fallback to first paragraph or all text
-                        p_elem = element.locator('p').first
-                        if p_elem.count() > 0:
-                            data['content'] = p_elem.inner_text().strip()
-                        else:
-                            data['content'] = element.inner_text().strip()[:200]
+            # Question title from <h1> or og:title
+            h1 = soup.find('h1')
+            if h1:
+                data['content'] = h1.get_text(strip=True)
+            else:
+                og_title = soup.find('meta', property='og:title')
+                if og_title:
+                    data['content'] = og_title.get('content', '').strip()
 
-                    if not data.get('content') or len(data['content']) < 10:
-                        continue
+            if not data.get('content'):
+                return {}
 
-                    # URL
-                    link = element.locator('a').first
-                    if link.count() > 0:
-                        href = link.get_attribute('href')
-                        if href:
-                            if href.startswith('http'):
-                                data['url'] = href
-                            else:
-                                data['url'] = f"https://stellarpeers.com{href}"
-                    else:
-                        data['url'] = self.source_url
+            # Clean up title - remove site name suffix
+            data['content'] = re.sub(r'\s*[-–|].*StellarPeers.*$', '', data['content']).strip()
 
-                    # Company (might be in badges or tags)
-                    company_elem = element.locator('.company, .badge, [class*="company"]').first
-                    if company_elem.count() > 0:
-                        data['company'] = company_elem.inner_text().strip()
+            # URL
+            data['url'] = url
 
-                    # Type/Category
-                    category_elem = element.locator('.category, .tag, [class*="type"]').first
-                    if category_elem.count() > 0:
-                        data['type'] = category_elem.inner_text().strip()
+            # Company - extract from breadcrumb, tags, or page content
+            data['company'] = self._extract_company(soup)
 
-                    if data.get('content'):
-                        questions.append(data)
+            # Question type - extract from breadcrumb or categories
+            data['type'] = self._extract_type(soup, url)
 
-                except Exception as e:
-                    self.logger.warning(f"Error extracting question: {str(e)}")
-                    continue
+            # Published date from meta tags
+            date_published = soup.find('meta', property='article:published_time')
+            if date_published:
+                data['published_at'] = date_published.get('content', '')
+            elif lastmod:
+                data['published_at'] = lastmod
 
+            return data
+
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                return {}
+            raise
         except Exception as e:
-            self.logger.error(f"Error scraping with selector {selector}: {str(e)}")
+            self.logger.warning(f"Error parsing {url}: {str(e)}")
+            return {}
 
-        return questions
+    def _extract_company(self, soup) -> str:
+        """Extract company name from the page"""
+        # Check breadcrumbs
+        breadcrumbs = soup.find_all('a', class_=re.compile(r'breadcrumb', re.I))
+        for bc in breadcrumbs:
+            text = bc.get_text(strip=True)
+            if text in self._known_companies():
+                return text
 
-    def _scrape_questions_fallback(self, page) -> List[Dict]:
-        """Fallback method: scrape all links that look like questions"""
-        questions = []
+        # Check for company mentions in structured data
+        schema = soup.find('script', type='application/ld+json')
+        if schema:
+            import json
+            try:
+                ld = json.loads(schema.string)
+                if isinstance(ld, dict):
+                    about = ld.get('about', {})
+                    if isinstance(about, dict) and about.get('name'):
+                        return about['name']
+            except:
+                pass
 
-        try:
-            # Find all links that might be questions
-            links = page.locator('a[href*="question"], a[href*="interview"]').all()
+        # Extract from URL slug
+        url_text = soup.find('link', rel='canonical')
+        if url_text:
+            href = url_text.get('href', '')
+            for company in self._known_companies():
+                if company.lower().replace(' ', '-') in href.lower():
+                    return company
 
-            self.logger.info(f"Found {len(links)} potential question links")
+        # Extract from page title
+        title = soup.find('h1')
+        if title:
+            title_text = title.get_text(strip=True)
+            for company in self._known_companies():
+                if company.lower() in title_text.lower():
+                    return company
 
-            for link in links:
-                try:
-                    data = {}
+        return None
 
-                    # Get link text as content
-                    data['content'] = link.inner_text().strip()
+    def _extract_type(self, soup, url: str) -> str:
+        """Extract question type from page or URL"""
+        url_lower = url.lower()
 
-                    if not data['content'] or len(data['content']) < 10:
-                        continue
+        # Map URL patterns to question types
+        type_patterns = {
+            'design': 'Product Design',
+            'improve': 'Product Design',
+            'build': 'Product Design',
+            'metric': 'Metrics',
+            'measure': 'Metrics',
+            'kpi': 'Metrics',
+            'estimate': 'Estimation',
+            'how-many': 'Estimation',
+            'calculate': 'Estimation',
+            'strategy': 'Product Strategy',
+            'market': 'Product Strategy',
+            'launch': 'Product Strategy',
+            'compete': 'Product Strategy',
+            'prioritize': 'Execution',
+            'roadmap': 'Execution',
+            'goal': 'Execution',
+            'tell-me-about': 'Behavioral',
+            'leadership': 'Behavioral',
+            'conflict': 'Behavioral',
+            'challenge': 'Behavioral',
+            'team': 'Behavioral',
+            'technical': 'Technical',
+            'system-design': 'Technical',
+            'architecture': 'Technical',
+            'api': 'Technical',
+        }
 
-                    # Get URL
-                    href = link.get_attribute('href')
-                    if href:
-                        if href.startswith('http'):
-                            data['url'] = href
-                        else:
-                            data['url'] = f"https://stellarpeers.com{href}"
-                    else:
-                        continue
+        for pattern, qtype in type_patterns.items():
+            if pattern in url_lower:
+                return qtype
 
-                    questions.append(data)
+        # Check page content for type hints
+        breadcrumbs = soup.find_all(['a', 'span'], class_=re.compile(r'breadcrumb|category', re.I))
+        for bc in breadcrumbs:
+            text = bc.get_text(strip=True).lower()
+            for pattern, qtype in type_patterns.items():
+                if pattern in text:
+                    return qtype
 
-                except Exception as e:
-                    continue
+        return None
 
-        except Exception as e:
-            self.logger.error(f"Error in fallback scraping: {str(e)}")
-
-        return questions
-
-    def _load_more_content(self, page):
-        """Try to load more content by scrolling or clicking"""
-        try:
-            # Try to find and click "Load More" button
-            load_more_selectors = [
-                'button:has-text("Load More")',
-                'button:has-text("Show More")',
-                'a:has-text("More")',
-                '[class*="load-more"]'
-            ]
-
-            for selector in load_more_selectors:
-                button = page.locator(selector).first
-                if button.count() > 0 and button.is_visible():
-                    self.logger.info("Clicking 'Load More' button")
-                    button.click()
-                    time.sleep(2)
-                    return
-
-            # Fallback: scroll to bottom
-            self.logger.info("Scrolling to load more content")
-            for _ in range(3):
-                page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                time.sleep(2)
-
-        except Exception as e:
-            self.logger.warning(f"Error loading more content: {str(e)}")
+    def _known_companies(self) -> List[str]:
+        """List of known companies to match against"""
+        return [
+            'Google', 'Meta', 'Facebook', 'Amazon', 'Apple', 'Microsoft',
+            'Netflix', 'Uber', 'Airbnb', 'LinkedIn', 'Spotify', 'Twitter',
+            'Stripe', 'Slack', 'Zoom', 'Pinterest', 'Snapchat', 'TikTok',
+            'Tesla', 'Salesforce', 'Adobe', 'Oracle', 'IBM', 'Intel',
+            'PayPal', 'Shopify', 'DoorDash', 'Instacart', 'Lyft',
+            'WhatsApp', 'Instagram', 'YouTube', 'Gmail', 'Dropbox',
+            'Robinhood', 'Coinbase', 'OpenAI', 'Anthropic', 'Databricks',
+        ]

@@ -47,8 +47,8 @@ SOURCES = {
     'stellarpeers': {
         'name': 'StellarPeers',
         'url': 'https://stellarpeers.com/interview-questions/',
-        'enabled': False,  # Phase 2: needs optimization
-        'priority': 'medium'
+        'enabled': True,
+        'priority': 'high'
     }
 }
 
