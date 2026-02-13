@@ -12,10 +12,8 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
-# OpenAI Configuration
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is required")
+# OpenAI Configuration (Phase 2)
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 
 # Scraping Configuration
 SCRAPE_TIMEOUT = 30  # seconds
@@ -43,13 +41,13 @@ SOURCES = {
     'nowcoder': {
         'name': '牛客网',
         'url': 'https://www.nowcoder.com/interview/center?jobId=11229',
-        'enabled': True,
+        'enabled': False,  # Phase 2: requires login
         'priority': 'high'
     },
     'stellarpeers': {
         'name': 'StellarPeers',
         'url': 'https://stellarpeers.com/interview-questions/',
-        'enabled': True,
+        'enabled': False,  # Phase 2: needs optimization
         'priority': 'medium'
     }
 }
