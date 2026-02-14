@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Link from 'next/link'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Daily Interview - PM面试高频题智能平台',
-  description: '自动聚合Product Manager面试题，AI识别高频考点，助你高效准备面试',
-  keywords: 'Product Manager, PM, 面试, Interview, 高频题, FAANG',
+  title: 'PM Interview Blend',
+  description: 'Curated PM interview questions from top sources. Focus. Prepare. Conquer.',
+  keywords: 'Product Manager, PM, Interview, Questions, FAANG, Big Tech',
 }
 
 export default function RootLayout({
@@ -16,31 +17,29 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body className={inter.className}>
-        <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <nav className="border-b border-cream-dark bg-cream sticky top-0 z-50">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-primary-600">
-                  Daily Interview
-                </span>
-                <span className="text-sm text-gray-500 hidden sm:inline">
-                  PM面试高频题
-                </span>
-              </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span>精选 · 高频 · 准确</span>
-              </div>
+              <Link href="/" className="text-2xl font-bold text-ink">
+                PM Interview Blend
+              </Link>
+              <Link
+                href="/questions"
+                className="text-sm font-medium text-ink hover:text-accent transition"
+              >
+                Browse
+              </Link>
             </div>
           </div>
         </nav>
-        <main className="min-h-screen">{children}</main>
-        <footer className="border-t py-8 mt-16 bg-gray-50">
-          <div className="container mx-auto px-4 text-center text-sm text-gray-600">
-            <p>Daily Interview · 不求大而全，但求精而准</p>
+        <main>{children}</main>
+        <footer className="border-t border-cream-dark py-8 bg-cream">
+          <div className="container mx-auto px-4 text-center text-sm text-ink/60">
+            <p>PM Interview Blend</p>
             <p className="mt-2 text-xs">
-              数据来源: Product Management Exercises, 牛客网, StellarPeers
+              Data sources: Product Management Exercises, NowCoder, StellarPeers
             </p>
           </div>
         </footer>
