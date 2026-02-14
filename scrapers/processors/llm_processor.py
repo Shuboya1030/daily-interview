@@ -18,28 +18,26 @@ LLM_MODEL = "gpt-4o-mini"
 BATCH_SIZE = 20  # questions per LLM call
 
 QUESTION_TYPES = [
+    "AI Domain Knowledge",
     "Behavioral",
+    "Metrics and Estimation",
+    "Execution",
     "Product Design",
     "Product Strategy",
-    "Metrics",
     "Technical",
-    "Estimation",
-    "Execution",
-    "AI Domain",
 ]
 
 SYSTEM_PROMPT = f"""You are a PM interview question analyst. For each question provided, return:
 1. "english": The question in English. If it's already English, return it as-is. If it's in another language, translate it naturally.
 2. "types": A list of applicable question types from EXACTLY this set: {json.dumps(QUESTION_TYPES)}
    - A question can have 1-3 types. Only assign types that clearly apply.
-   - "AI Domain" applies to questions specifically about AI/ML concepts, LLMs, recommendation systems, computer vision, NLP, hallucination, bias in AI, etc.
+   - "AI Domain Knowledge" applies to questions specifically about AI/ML concepts, LLMs, recommendation systems, computer vision, NLP, hallucination, bias in AI, etc.
+   - "Behavioral" applies to past experience, leadership, conflict, teamwork.
+   - "Metrics and Estimation" applies to KPIs, measurement, success metrics, A/B testing, market sizing, fermi estimation, "how many X".
+   - "Execution" applies to prioritization, roadmap, trade-offs, goal setting.
    - "Product Design" applies to questions asking to design, build, or improve a product.
    - "Product Strategy" applies to market entry, competition, pricing, go-to-market, growth.
-   - "Metrics" applies to KPIs, measurement, success metrics, A/B testing.
-   - "Behavioral" applies to past experience, leadership, conflict, teamwork.
    - "Technical" applies to system design, APIs, architecture, data pipelines.
-   - "Estimation" applies to market sizing, fermi estimation, "how many X".
-   - "Execution" applies to prioritization, roadmap, trade-offs, goal setting.
 
 Return a JSON array where each element has "index", "english", and "types".
 Example: [{{"index": 0, "english": "How would you design...", "types": ["Product Design"]}}]

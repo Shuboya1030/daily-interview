@@ -6,11 +6,13 @@ import Link from 'next/link'
 interface Question {
   id: string
   content: string
+  english_content: string | null
   frequency: number
   company: string | null
   companies: string[]
   question_type: string | null
   question_types: string[]
+  first_seen_at: string | null
   updated_at: string
 }
 
@@ -158,15 +160,18 @@ export default function QuestionsPage() {
                       {question.content}
                     </h3>
 
+                    {/* Stats line */}
+                    {(question.frequency > 1 || (question.companies && question.companies.length > 0)) && (
+                      <p className="text-sm text-gray-500 mb-2">
+                        {[
+                          question.frequency > 1 && `Asked ${question.frequency}x`,
+                          question.companies && question.companies.length > 0 && `${question.companies.length} ${question.companies.length === 1 ? 'company' : 'companies'}`,
+                        ].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+
                     {/* Tags */}
                     <div className="flex flex-wrap gap-2">
-                      {/* Frequency Badge */}
-                      {question.frequency > 1 && (
-                        <span className="px-3 py-1 bg-red-100 text-red-700 text-sm font-semibold rounded-full">
-                          {question.frequency}x
-                        </span>
-                      )}
-
                       {/* Company tags */}
                       {question.companies && question.companies.map(company => (
                         <span key={company} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
@@ -179,7 +184,7 @@ export default function QuestionsPage() {
                         <span
                           key={type}
                           className={`px-3 py-1 text-sm rounded-full ${
-                            type === 'AI Domain'
+                            type === 'AI Domain Knowledge'
                               ? 'bg-purple-100 text-purple-700'
                               : 'bg-green-100 text-green-700'
                           }`}

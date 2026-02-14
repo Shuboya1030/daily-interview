@@ -133,11 +133,13 @@ async function enrichMergedQuestions(questions: any[]) {
   return questions.map(q => ({
     id: q.id,
     content: q.canonical_content,
+    english_content: q.english_content || null,
     frequency: q.frequency,
     question_type: q.question_type,
     question_types: q.question_types || (q.question_type ? [q.question_type] : []),
     company: questionCompanies[q.id]?.join(', ') || null,
     companies: questionCompanies[q.id] || [],
+    first_seen_at: q.first_seen_at || null,
     updated_at: q.updated_at,
   }))
 }

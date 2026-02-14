@@ -13,9 +13,22 @@ from config import OPENAI_API_KEY
 
 logger = logging.getLogger("Embeddings")
 
-SIMILARITY_THRESHOLD = 0.9
+SIMILARITY_THRESHOLD = 0.85
 EMBEDDING_MODEL = "text-embedding-3-small"
 BATCH_SIZE = 100  # OpenAI supports up to 2048 inputs per request
+
+# Canonical question types — only these are allowed in merged output
+VALID_TYPES = {
+    "AI Domain Knowledge", "Behavioral", "Metrics and Estimation",
+    "Execution", "Product Design", "Product Strategy", "Technical",
+}
+
+# Map old/legacy type names to canonical names
+TYPE_NORMALIZATION = {
+    "Metrics": "Metrics and Estimation",
+    "Estimation": "Metrics and Estimation",
+    "AI Domain": "AI Domain Knowledge",
+}
 
 
 class EmbeddingProcessor:
@@ -120,13 +133,16 @@ class EmbeddingProcessor:
                max(group, key=lambda q: len(q.get('content', '')))['content']
 
     def _aggregate_types(self, group: List[Dict]) -> List[str]:
-        """Aggregate llm_types across all questions in a group (union)"""
+        """Aggregate llm_types across all questions in a group (union).
+        Normalizes old type names and filters to only valid canonical types."""
         all_types = set()
         for q in group:
             llm_types = q.get('llm_types')
             if llm_types:
                 for t in llm_types:
-                    all_types.add(t)
+                    normalized = TYPE_NORMALIZATION.get(t, t)
+                    if normalized in VALID_TYPES:
+                        all_types.add(normalized)
         return sorted(all_types) if all_types else []
 
     def process_and_merge(self, db_manager) -> Dict:
@@ -162,11 +178,23 @@ class EmbeddingProcessor:
             # Keep first non-null single type for backward compat
             question_type = question_types[0] if question_types else None
 
+            # english_content is the canonical (already English from select_canonical)
+            english_content = canonical
+
+            # first_seen_at = earliest published_at across all raw questions in group
+            published_dates = [
+                q['published_at'] for q in group
+                if q.get('published_at') is not None
+            ]
+            first_seen_at = min(published_dates) if published_dates else None
+
             # Create merged question
             merged_id = db_manager.create_merged_question(
                 content=canonical,
                 question_type=question_type,
                 question_types=question_types or None,
+                english_content=english_content,
+                first_seen_at=first_seen_at,
             )
 
             # Update frequency

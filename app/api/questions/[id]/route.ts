@@ -40,7 +40,7 @@ export async function GET(
     if (rawIds.length > 0) {
       const { data: raws } = await supabase
         .from('raw_questions')
-        .select('id, content, source, source_url, company, question_type, scraped_at, published_at')
+        .select('id, content, english_content, source, source_url, company, question_type, scraped_at, published_at')
         .in('id', rawIds)
 
       rawQuestions = (raws || []).map(rq => ({
@@ -70,10 +70,12 @@ export async function GET(
     return NextResponse.json({
       id: merged.id,
       content: merged.canonical_content,
+      english_content: merged.english_content || null,
       frequency: merged.frequency,
       question_type: merged.question_type,
       question_types: merged.question_types || (merged.question_type ? [merged.question_type] : []),
       companies,
+      first_seen_at: merged.first_seen_at || null,
       updated_at: merged.updated_at,
       raw_questions: rawQuestions,
     })

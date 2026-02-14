@@ -52,7 +52,8 @@ class DatabaseManager:
             ON CONFLICT (content, source) DO UPDATE SET
                 company = COALESCE(EXCLUDED.company, raw_questions.company),
                 question_type = COALESCE(EXCLUDED.question_type, raw_questions.question_type),
-                metadata = EXCLUDED.metadata
+                metadata = EXCLUDED.metadata,
+                published_at = COALESCE(EXCLUDED.published_at, raw_questions.published_at)
             RETURNING id
             """
 
@@ -121,7 +122,9 @@ class DatabaseManager:
 
     @staticmethod
     def create_merged_question(content: str, question_type: Optional[str] = None,
-                               question_types: Optional[List[str]] = None) -> str:
+                               question_types: Optional[List[str]] = None,
+                               english_content: Optional[str] = None,
+                               first_seen_at=None) -> str:
         """
         Create a new merged question
 
@@ -132,12 +135,15 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             query = """
-            INSERT INTO merged_questions (canonical_content, question_type, question_types, frequency)
-            VALUES (%s, %s, %s, 1)
+            INSERT INTO merged_questions
+                (canonical_content, question_type, question_types, frequency,
+                 english_content, first_seen_at)
+            VALUES (%s, %s, %s, 1, %s, %s)
             RETURNING id
             """
 
-            cursor.execute(query, (content, question_type, question_types))
+            cursor.execute(query, (content, question_type, question_types,
+                                   english_content, first_seen_at))
             merged_id = cursor.fetchone()[0]
             cursor.close()
 
@@ -254,6 +260,22 @@ class DatabaseManager:
                     ) THEN
                         ALTER TABLE merged_questions ADD COLUMN question_types TEXT[];
                     END IF;
+
+                    -- merged_questions: english_content for bilingual display
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'merged_questions' AND column_name = 'english_content'
+                    ) THEN
+                        ALTER TABLE merged_questions ADD COLUMN english_content TEXT;
+                    END IF;
+
+                    -- merged_questions: earliest published date from raw questions
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'merged_questions' AND column_name = 'first_seen_at'
+                    ) THEN
+                        ALTER TABLE merged_questions ADD COLUMN first_seen_at TIMESTAMPTZ;
+                    END IF;
                 END $$;
             """)
             cursor.close()
@@ -339,7 +361,7 @@ class DatabaseManager:
 
             query = """
             SELECT id, content, english_content, source, source_url,
-                   company, question_type, llm_types, metadata
+                   company, question_type, llm_types, metadata, published_at
             FROM raw_questions
             ORDER BY scraped_at DESC
             """

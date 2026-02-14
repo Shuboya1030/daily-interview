@@ -15,6 +15,7 @@ import json
 import re
 import time
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Tuple
 
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
@@ -36,6 +37,13 @@ Rules:
 4. Skip generic icebreakers like "自我介绍" (self-introduction) unless it's specifically about PM skills.
 5. Include follow-up questions if they are substantive.
 6. For each question, note which interview round it was in (if mentioned).
+
+EXCLUDE the following categories (do NOT extract these):
+- HR logistics: salary expectations (期望薪资/薪资要求), start date (到岗时间/入职时间), other offers (有没有其他offer), relocation willingness, work schedule preferences
+- Resume walkthroughs: "介绍一下你的实习经历", "介绍一下你的项目", "讲讲你的简历" (unless specifically about PM skills like product thinking or metrics)
+- Generic icebreakers: "你有什么想问我的吗", "你了解我们公司吗", "为什么选择我们公司", "你的职业规划是什么"
+- Non-PM technical screens: pure coding questions, algorithm questions (e.g., "写一个排序算法", "手撕代码"), SQL queries, system administration
+- Personal logistics: "你是哪里人", "你什么时候毕业", "你住在哪里"
 
 Return a JSON array where each element has:
 - "question": The interview question text
@@ -89,6 +97,31 @@ class NowcoderScraper(BaseScraper):
                 # Step 1: Get post list from collection page
                 posts = self._fetch_post_list(page)
                 self.logger.info(f"Found {len(posts)} experience posts")
+
+                # Step 1.5: Filter posts by date (keep only last N days)
+                cutoff = datetime.now(timezone.utc) - timedelta(days=days_back)
+                filtered_posts = []
+                skipped = 0
+                for post in posts:
+                    created = post.get('created_at')
+                    if created:
+                        try:
+                            # Nowcoder uses millisecond timestamps
+                            ts = int(created) / 1000.0 if int(created) > 1e12 else int(created)
+                            post_date = datetime.fromtimestamp(ts, tz=timezone.utc)
+                            if post_date < cutoff:
+                                skipped += 1
+                                continue
+                        except (ValueError, TypeError, OSError):
+                            pass  # If we can't parse, include the post
+                    filtered_posts.append(post)
+
+                if skipped:
+                    self.logger.info(
+                        f"Filtered out {skipped} posts older than {days_back} days, "
+                        f"{len(filtered_posts)} posts remaining"
+                    )
+                posts = filtered_posts
 
                 # Step 2: For each post, fetch detail and extract questions
                 for i, post in enumerate(posts):

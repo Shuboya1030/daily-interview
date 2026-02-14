@@ -7,6 +7,7 @@ import Link from 'next/link'
 interface RawQuestion {
   id: string
   content: string
+  english_content: string | null
   source: string
   source_url: string
   company: string | null
@@ -19,10 +20,12 @@ interface RawQuestion {
 interface QuestionDetail {
   id: string
   content: string
+  english_content: string | null
   frequency: number
   question_type: string | null
   question_types: string[]
   companies: string[]
+  first_seen_at: string | null
   updated_at: string
   raw_questions: RawQuestion[]
 }
@@ -114,7 +117,7 @@ export default function QuestionDetailPage() {
             <span
               key={type}
               className={`px-3 py-1 text-sm rounded-full ${
-                type === 'AI Domain'
+                type === 'AI Domain Knowledge'
                   ? 'bg-purple-100 text-purple-700'
                   : 'bg-green-100 text-green-700'
               }`}
@@ -123,6 +126,15 @@ export default function QuestionDetailPage() {
             </span>
           ))}
         </div>
+
+        {/* First seen date */}
+        {question.first_seen_at && (
+          <p className="text-sm text-gray-500 mt-3">
+            First seen: {new Date(question.first_seen_at).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'short', day: 'numeric'
+            })}
+          </p>
+        )}
       </div>
 
       {/* Sub-questions (Raw Sources) */}
@@ -138,7 +150,12 @@ export default function QuestionDetailPage() {
                 key={rq.id}
                 className="bg-white border rounded-lg p-5 hover:shadow transition"
               >
-                <p className="text-gray-800 mb-3">{rq.content}</p>
+                <p className="text-gray-800">{rq.content}</p>
+                {/* Show English translation for Nowcoder (Chinese) sources */}
+                {rq.source === 'nowcoder' && rq.english_content && rq.english_content !== rq.content && (
+                  <p className="text-gray-500 text-sm italic mt-1">{rq.english_content}</p>
+                )}
+                <div className="mt-3" />
 
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex flex-wrap gap-2">

@@ -100,13 +100,46 @@ class BaseScraper(ABC):
 
         return type_mapping.get(raw_type.lower(), raw_type)
 
-    def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
-        """Parse date string to datetime"""
-        if not date_str:
+    def _parse_date(self, date_val) -> Optional[datetime]:
+        """Parse date value to datetime.
+
+        Handles:
+        - Unix timestamps in milliseconds (Nowcoder's createTime)
+        - Unix timestamps in seconds
+        - ISO 8601 strings
+        - int, float, and string inputs
+        """
+        if date_val is None:
             return None
 
-        # Add parsing logic based on different formats
-        # For now, return None
+        # Handle numeric timestamps (int or float, or numeric string)
+        try:
+            numeric = float(date_val)
+            # Millisecond timestamps (> 1e12 means it's in ms)
+            if numeric > 1e12:
+                numeric = numeric / 1000.0
+            return datetime.fromtimestamp(numeric)
+        except (ValueError, TypeError, OSError):
+            pass
+
+        # Handle string date formats
+        if isinstance(date_val, str):
+            date_str = date_val.strip()
+            # ISO 8601 formats
+            for fmt in (
+                '%Y-%m-%dT%H:%M:%S.%fZ',
+                '%Y-%m-%dT%H:%M:%SZ',
+                '%Y-%m-%dT%H:%M:%S.%f%z',
+                '%Y-%m-%dT%H:%M:%S%z',
+                '%Y-%m-%dT%H:%M:%S',
+                '%Y-%m-%d %H:%M:%S',
+                '%Y-%m-%d',
+            ):
+                try:
+                    return datetime.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+
         return None
 
     def _should_scrape_question(self, published_at: Optional[datetime], days_back: int) -> bool:
