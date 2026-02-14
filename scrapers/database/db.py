@@ -57,8 +57,12 @@ class DatabaseManager:
             RETURNING id
             """
 
-            values = [
-                (
+            # Deduplicate within batch — ON CONFLICT can't handle
+            # two rows with the same (content, source) in one INSERT
+            seen = {}
+            for q in questions:
+                key = (q['content'], q['source'])
+                seen[key] = (
                     q['content'],
                     q['source'],
                     q['source_url'],
@@ -67,8 +71,7 @@ class DatabaseManager:
                     json.dumps(q.get('metadata', {})),
                     q.get('published_at')
                 )
-                for q in questions
-            ]
+            values = list(seen.values())
 
             execute_values(cursor, query, values)
             inserted_count = cursor.rowcount
