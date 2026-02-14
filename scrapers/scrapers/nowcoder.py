@@ -68,6 +68,7 @@ class NowcoderScraper(BaseScraper):
             self.llm_client = OpenAI(api_key=OPENAI_API_KEY)
         else:
             self.llm_client = None
+        self.known_urls: set = set()  # URLs already processed in DB
 
     def scrape(self, days_back: int = 90) -> List[Dict]:
         if not self.llm_client:
@@ -132,7 +133,14 @@ class NowcoderScraper(BaseScraper):
                     posts = posts[:MAX_POSTS]
 
                 # Step 2: For each post, fetch detail and extract questions
+                skipped_known = 0
                 for i, post in enumerate(posts):
+                    # Skip posts already in database
+                    post_url = self.DETAIL_URL_TEMPLATE.format(uuid=post['uuid'])
+                    if post_url in self.known_urls:
+                        skipped_known += 1
+                        continue
+
                     title_preview = post.get('title', 'Untitled')[:50]
                     self.logger.info(
                         f"Processing post {i+1}/{len(posts)}: {title_preview}..."
@@ -162,6 +170,11 @@ class NowcoderScraper(BaseScraper):
                             f"Error processing post {post.get('uuid')}: {str(e)}"
                         )
                         continue
+
+                if skipped_known:
+                    self.logger.info(
+                        f"Skipped {skipped_known} already-processed posts"
+                    )
 
             except Exception as e:
                 self.logger.error(f"Error during scraping: {str(e)}", exc_info=True)

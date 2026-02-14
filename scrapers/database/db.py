@@ -435,3 +435,48 @@ class DatabaseManager:
 
             cursor.close()
             return stats
+
+    @staticmethod
+    def get_existing_source_urls(source: str) -> set:
+        """Get all source_urls that already have raw questions for a given source."""
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT DISTINCT source_url FROM raw_questions WHERE source = %s",
+                (source,)
+            )
+            urls = {row[0] for row in cursor.fetchall()}
+            cursor.close()
+            return urls
+
+    @staticmethod
+    def cleanup_duplicate_raw_by_url(source: str) -> int:
+        """Remove duplicate raw questions from the same source_url.
+
+        For each source_url, keeps only the questions from the earliest
+        scrape batch (oldest scraped_at). Questions added by later runs
+        with slightly different LLM phrasing are deleted.
+
+        Returns number of deleted rows.
+        """
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                DELETE FROM raw_questions
+                WHERE id IN (
+                    SELECT rq.id
+                    FROM raw_questions rq
+                    JOIN (
+                        -- For each source_url, find the earliest scrape timestamp
+                        SELECT source_url, MIN(scraped_at) AS first_scraped
+                        FROM raw_questions
+                        WHERE source = %s
+                        GROUP BY source_url
+                    ) earliest ON rq.source_url = earliest.source_url
+                    WHERE rq.source = %s
+                      AND rq.scraped_at > earliest.first_scraped + INTERVAL '5 minutes'
+                )
+            """, (source, source))
+            removed = cursor.rowcount
+            cursor.close()
+            return removed

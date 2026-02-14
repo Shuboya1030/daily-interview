@@ -72,10 +72,26 @@ class DailyInterviewScraper:
         # Step 1: Scrape from all sources
         all_questions = []
 
+        # Pre-cleanup: remove duplicate Nowcoder raw questions from previous runs
+        try:
+            removed = self.db.cleanup_duplicate_raw_by_url('nowcoder')
+            if removed:
+                logger.info(f"Cleaned up {removed} duplicate Nowcoder raw questions")
+        except Exception as e:
+            logger.warning(f"Nowcoder cleanup skipped: {str(e)}")
+
         for scraper in self.scrapers:
             logger.info(f"\n{'='*60}")
             logger.info(f"Running {scraper.source_name} scraper")
             logger.info(f"{'='*60}")
+
+            # For Nowcoder: pass known URLs to skip already-processed posts
+            if isinstance(scraper, NowcoderScraper):
+                try:
+                    scraper.known_urls = self.db.get_existing_source_urls('nowcoder')
+                    logger.info(f"Nowcoder: {len(scraper.known_urls)} posts already in DB")
+                except Exception as e:
+                    logger.warning(f"Could not fetch known URLs: {str(e)}")
 
             try:
                 questions = scraper.run(days_back)
