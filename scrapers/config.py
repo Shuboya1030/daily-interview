@@ -40,8 +40,8 @@ SOURCES = {
     },
     'nowcoder': {
         'name': '牛客网',
-        'url': 'https://www.nowcoder.com/interview/center?jobId=11229',
-        'enabled': False,  # Phase 2: requires login
+        'url': 'https://www.nowcoder.com/experience/891',
+        'enabled': True,
         'priority': 'high'
     },
     'stellarpeers': {
