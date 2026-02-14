@@ -74,19 +74,19 @@ export default function QuestionsPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">PM Interview Question Bank</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold mb-2 text-ink">PM Interview Question Bank</h1>
+        <p className="text-ink/60">
           {total} questions collected from multiple sources, sorted by frequency
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border rounded-lg p-6 mb-8">
+      <div className="bg-cream-dark/50 border border-cream-dark rounded-lg p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Filter</h2>
+          <h2 className="text-lg font-semibold text-ink">Filter</h2>
           <button
             onClick={resetFilters}
-            className="text-sm text-primary-600 hover:text-primary-700"
+            className="text-sm text-accent hover:text-accent/80"
           >
             Reset
           </button>
@@ -95,13 +95,13 @@ export default function QuestionsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Company Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-ink/70 mb-2">
               Company
             </label>
             <select
               value={selectedCompany}
               onChange={(e) => setSelectedCompany(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-cream-dark rounded-lg bg-cream focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
               <option value="">All Companies</option>
               {filters.companies.map(company => (
@@ -114,13 +114,13 @@ export default function QuestionsPage() {
 
           {/* Type Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-ink/70 mb-2">
               Question Type
             </label>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-cream-dark rounded-lg bg-cream focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
               <option value="">All Types</option>
               {filters.types.map(type => (
@@ -136,13 +136,13 @@ export default function QuestionsPage() {
       {/* Questions List */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+          <p className="mt-4 text-ink/60">Loading...</p>
         </div>
       ) : questions.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 text-lg">No questions found</p>
-          <p className="text-gray-500 text-sm mt-2">Try adjusting your filters</p>
+        <div className="text-center py-12 bg-cream-dark/30 rounded-lg">
+          <p className="text-ink/70 text-lg">No questions found</p>
+          <p className="text-ink/50 text-sm mt-2">Try adjusting your filters</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -152,17 +152,17 @@ export default function QuestionsPage() {
               href={`/questions/${question.id}`}
               className="block"
             >
-              <div className="bg-white border rounded-lg p-6 hover:shadow-lg transition cursor-pointer">
+              <div className="bg-cream-dark/30 border border-cream-dark rounded-lg p-6 hover:shadow-lg transition cursor-pointer">
                 {/* Question Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-ink mb-2">
                       {question.content}
                     </h3>
 
-                    {/* Stats line */}
+                    {/* Stats line — highlighted */}
                     {(question.frequency > 1 || (question.companies && question.companies.length > 0)) && (
-                      <p className="text-sm text-gray-500 mb-2">
+                      <p className="text-sm font-semibold text-accent mb-2">
                         {[
                           question.frequency > 1 && `Asked ${question.frequency}x`,
                           question.companies && question.companies.length > 0 && `${question.companies.length} ${question.companies.length === 1 ? 'company' : 'companies'}`,
@@ -174,7 +174,7 @@ export default function QuestionsPage() {
                     <div className="flex flex-wrap gap-2">
                       {/* Company tags */}
                       {question.companies && question.companies.map(company => (
-                        <span key={company} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                        <span key={company} className="px-3 py-1 bg-cream-dark text-ink/70 text-sm rounded-full">
                           {company}
                         </span>
                       ))}
@@ -183,11 +183,7 @@ export default function QuestionsPage() {
                       {(question.question_types || []).map(type => (
                         <span
                           key={type}
-                          className={`px-3 py-1 text-sm rounded-full ${
-                            type === 'AI Domain Knowledge'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-green-100 text-green-700'
-                          }`}
+                          className="px-3 py-1 bg-cream-dark text-ink/70 text-sm rounded-full"
                         >
                           {type}
                         </span>
@@ -206,7 +202,7 @@ export default function QuestionsPage() {
         <div className="text-center mt-8">
           <button
             onClick={loadQuestions}
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+            className="px-6 py-3 bg-accent text-white rounded-lg hover:opacity-90 transition"
           >
             Load More
           </button>

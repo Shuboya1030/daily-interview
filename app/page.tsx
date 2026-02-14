@@ -35,9 +35,9 @@ export default function Home() {
             <Image
               src="/hero-arrow.jpg"
               alt="Arrow hitting the target — line art"
-              width={500}
-              height={400}
-              className="w-full max-w-md"
+              width={700}
+              height={560}
+              className="w-full max-w-2xl"
               priority
             />
           </div>
