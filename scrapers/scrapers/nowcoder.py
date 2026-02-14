@@ -123,6 +123,14 @@ class NowcoderScraper(BaseScraper):
                     )
                 posts = filtered_posts
 
+                # Step 1.6: Cap post count to avoid over-scraping
+                MAX_POSTS = 25
+                if len(posts) > MAX_POSTS:
+                    self.logger.info(
+                        f"Capping posts from {len(posts)} to {MAX_POSTS}"
+                    )
+                    posts = posts[:MAX_POSTS]
+
                 # Step 2: For each post, fetch detail and extract questions
                 for i, post in enumerate(posts):
                     title_preview = post.get('title', 'Untitled')[:50]

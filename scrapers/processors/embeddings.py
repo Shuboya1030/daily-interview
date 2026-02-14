@@ -13,7 +13,7 @@ from config import OPENAI_API_KEY
 
 logger = logging.getLogger("Embeddings")
 
-SIMILARITY_THRESHOLD = 0.85
+SIMILARITY_THRESHOLD = 0.80
 EMBEDDING_MODEL = "text-embedding-3-small"
 BATCH_SIZE = 100  # OpenAI supports up to 2048 inputs per request
 
