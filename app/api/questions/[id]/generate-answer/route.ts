@@ -2,18 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+export const dynamic = 'force-dynamic'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
+
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const { id } = params
+  const supabase = getSupabase()
 
   try {
     // 1. Check cache first
@@ -102,6 +109,7 @@ KNOWLEDGE BASE:
 ${knowledgeBase}`
 
     // 5. Call OpenAI streaming API
+    const openai = getOpenAI()
     const stream = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
