@@ -407,7 +407,7 @@ export default function QuestionDetailPage() {
                   AI-synthesized insights from our YouTube knowledge base
                 </p>
                 <p className="text-ink/40 text-xs mb-5">
-                  Featuring AI Explained, Lenny's Podcast, Y Combinator, IBM Technology, a16z, and more
+                  Featuring AI Explained, Lenny&apos;s Podcast, Y Combinator, IBM Technology, a16z, and more
                 </p>
                 <button
                   onClick={() => generateAnswer()}
