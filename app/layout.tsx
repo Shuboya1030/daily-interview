@@ -6,8 +6,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PM Interview Blend',
-  description: 'Curated PM interview questions from top sources. Focus. Prepare. Conquer.',
+  title: 'Focus AI PM',
+  description: 'Curated PM interview questions from top sources. Focus. Practice. Conquer.',
   keywords: 'Product Manager, PM, Interview, Questions, FAANG, Big Tech',
 }
 
@@ -23,14 +23,22 @@ export default function RootLayout({
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <Link href="/" className="text-2xl font-bold text-ink">
-                PM Interview Blend
+                Focus AI PM
               </Link>
-              <Link
-                href="/questions"
-                className="text-sm font-medium text-ink hover:text-accent transition"
-              >
-                Browse
-              </Link>
+              <div className="flex items-center gap-6">
+                <Link
+                  href="/questions"
+                  className="text-sm font-medium text-ink hover:text-accent transition"
+                >
+                  Browse
+                </Link>
+                <Link
+                  href="/admin"
+                  className="text-xs text-ink/40 hover:text-accent transition"
+                >
+                  Dashboard
+                </Link>
+              </div>
             </div>
           </div>
         </nav>

@@ -127,6 +127,61 @@ export interface Database {
           company_id?: string
         }
       }
+      video_summaries: {
+        Row: {
+          id: string
+          video_id: string
+          summary_text: string
+          relevance_score: number | null
+          relevance_category: string | null
+          model_used: string | null
+          summarized_at: string
+        }
+        Insert: {
+          id?: string
+          video_id: string
+          summary_text: string
+          relevance_score?: number | null
+          relevance_category?: string | null
+          model_used?: string | null
+          summarized_at?: string
+        }
+        Update: {
+          id?: string
+          video_id?: string
+          summary_text?: string
+          relevance_score?: number | null
+          relevance_category?: string | null
+          model_used?: string | null
+          summarized_at?: string
+        }
+      }
+      sample_answers: {
+        Row: {
+          id: string
+          question_id: string
+          answer_text: string
+          source_videos: Json
+          generated_at: string
+          model_used: string | null
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          answer_text: string
+          source_videos?: Json
+          generated_at?: string
+          model_used?: string | null
+        }
+        Update: {
+          id?: string
+          question_id?: string
+          answer_text?: string
+          source_videos?: Json
+          generated_at?: string
+          model_used?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never
