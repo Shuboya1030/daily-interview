@@ -67,6 +67,13 @@ export async function GET(
       companies = companyData?.map(c => c.name) || []
     }
 
+    // Get sample answer if available
+    const { data: sampleAnswer } = await supabase
+      .from('sample_answers')
+      .select('answer_text, source_videos, model_used, generated_at')
+      .eq('question_id', id)
+      .single()
+
     return NextResponse.json({
       id: merged.id,
       content: merged.canonical_content,
@@ -78,6 +85,12 @@ export async function GET(
       first_seen_at: merged.first_seen_at || null,
       updated_at: merged.updated_at,
       raw_questions: rawQuestions,
+      sample_answer: sampleAnswer ? {
+        answer_text: sampleAnswer.answer_text,
+        source_videos: sampleAnswer.source_videos,
+        model_used: sampleAnswer.model_used,
+        generated_at: sampleAnswer.generated_at,
+      } : null,
     })
 
   } catch (error: any) {

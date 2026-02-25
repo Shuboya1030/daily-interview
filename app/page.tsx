@@ -11,14 +11,14 @@ export default function Home() {
             <h1 className="text-5xl md:text-7xl font-bold leading-tight text-ink">
               Focus.
               <br />
-              Prepare.
+              Practice.
               <br />
               Conquer.
             </h1>
             <p className="mt-6 text-xl md:text-2xl text-ink/70">
               With{' '}
               <span className="text-accent font-semibold">
-                PM Interview Blend
+                Focus AI PM
               </span>
               .
             </p>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Sparkles } from 'lucide-react'
 
 interface Question {
   id: string
@@ -72,12 +73,24 @@ export default function QuestionsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
+      {/* Header + Stats */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 text-ink">PM Interview Question Bank</h1>
-        <p className="text-ink/60">
+        <p className="text-ink/60 mb-5">
           {total} questions collected from multiple sources, sorted by frequency
         </p>
+        <div className="flex gap-6">
+          {[
+            { num: '120+', label: 'Questions' },
+            { num: '15+', label: 'Companies' },
+            { num: '40+', label: 'Expert Video Sources' },
+          ].map(s => (
+            <div key={s.label} className="flex items-baseline gap-1.5">
+              <span className="text-xl font-bold text-ink">{s.num}</span>
+              <span className="text-xs text-ink/40">{s.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Filters */}
@@ -146,54 +159,64 @@ export default function QuestionsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {questions.map((question) => (
-            <Link
-              key={question.id}
-              href={`/questions/${question.id}`}
-              className="block"
-            >
-              <div className="bg-cream-dark/30 border border-cream-dark rounded-lg p-6 hover:shadow-lg transition cursor-pointer">
-                {/* Question Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-ink mb-2">
-                      {question.content}
-                    </h3>
+          {questions.map((question) => {
+            const isAI = (question.question_types || []).includes('AI Domain Knowledge')
+            return (
+              <Link
+                key={question.id}
+                href={`/questions/${question.id}`}
+                className="block"
+              >
+                <div className="bg-cream-dark/30 border border-cream-dark rounded-lg p-6 hover:shadow-lg transition cursor-pointer">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-medium text-ink mb-2">
+                        {question.content}
+                      </h3>
 
-                    {/* Stats line — highlighted */}
-                    {(question.frequency > 1 || (question.companies && question.companies.length > 0)) && (
-                      <p className="text-sm font-semibold text-accent mb-2">
-                        {[
-                          question.frequency > 1 && `Asked ${question.frequency}x`,
-                          question.companies && question.companies.length > 0 && `${question.companies.length} ${question.companies.length === 1 ? 'company' : 'companies'}`,
-                        ].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
+                      {/* Stats line — highlighted */}
+                      {(question.frequency > 1 || (question.companies && question.companies.length > 0)) && (
+                        <p className="text-sm font-semibold text-accent mb-2">
+                          {[
+                            question.frequency > 1 && `Asked ${question.frequency}x`,
+                            question.companies && question.companies.length > 0 && `${question.companies.length} ${question.companies.length === 1 ? 'company' : 'companies'}`,
+                          ].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
 
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2">
-                      {/* Company tags */}
-                      {question.companies && question.companies.map(company => (
-                        <span key={company} className="px-3 py-1 bg-cream-dark text-ink/70 text-sm rounded-full">
-                          {company}
-                        </span>
-                      ))}
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-2">
+                        {/* Expert Insights badge for AI questions */}
+                        {isAI && (
+                          <span className="px-3 py-1 bg-accent/10 text-accent text-sm rounded-full inline-flex items-center gap-1 font-medium">
+                            <Sparkles size={12} />
+                            Expert Insights
+                          </span>
+                        )}
 
-                      {/* Type tags (multi-label) */}
-                      {(question.question_types || []).map(type => (
-                        <span
-                          key={type}
-                          className="px-3 py-1 bg-cream-dark text-ink/70 text-sm rounded-full"
-                        >
-                          {type}
-                        </span>
-                      ))}
+                        {/* Company tags */}
+                        {question.companies && question.companies.map(company => (
+                          <span key={company} className="px-3 py-1 bg-cream-dark text-ink/70 text-sm rounded-full">
+                            {company}
+                          </span>
+                        ))}
+
+                        {/* Type tags (multi-label) */}
+                        {(question.question_types || []).map(type => (
+                          <span
+                            key={type}
+                            className="px-3 py-1 bg-cream-dark text-ink/70 text-sm rounded-full"
+                          >
+                            {type}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            )
+          })}
         </div>
       )}
 
