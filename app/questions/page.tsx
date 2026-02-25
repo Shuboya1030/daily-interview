@@ -29,7 +29,7 @@ export default function QuestionsPage() {
 
   // Filter states
   const [selectedCompany, setSelectedCompany] = useState('')
-  const [selectedType, setSelectedType] = useState('')
+  const [selectedType, setSelectedType] = useState('AI Domain Knowledge')
 
   // Load filters
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function QuestionsPage() {
               <option value="">All Types</option>
               {filters.types.map(type => (
                 <option key={type} value={type}>
-                  {type}
+                  {type}{type === 'AI Domain Knowledge' ? ' — Expert Inspirations available' : ''}
                 </option>
               ))}
             </select>

@@ -317,6 +317,8 @@ export default function QuestionDetailPage() {
     )
   }
 
+  const isAIDomainKnowledge = (question.question_types || []).includes('AI Domain Knowledge')
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       {/* Back Link */}
@@ -376,51 +378,53 @@ export default function QuestionDetailPage() {
         )}
       </div>
 
-      {/* Expert Inspirations Section */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-ink mb-4">
-          Expert Inspirations
-        </h2>
+      {/* Expert Inspirations Section — only for AI Domain Knowledge questions */}
+      {isAIDomainKnowledge && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-ink mb-4">
+            Expert Inspirations
+          </h2>
 
-        {question.sample_answer ? (
-          <InspirationCard
-            answer={question.sample_answer}
-            onRegenerate={() => generateAnswer(true)}
-          />
-        ) : generating || streamedText ? (
-          <StreamingCard text={streamedText} generating={generating} />
-        ) : (
-          <div className="bg-cream-dark/20 border border-dashed border-cream-dark rounded-lg p-8 text-center">
-            {generationError ? (
-              <>
-                <p className="text-red-500/70 text-sm mb-3">{generationError}</p>
-                <button
-                  onClick={() => generateAnswer()}
-                  className="px-5 py-2 bg-cream-dark text-ink/70 rounded-lg text-sm hover:bg-cream-dark/80 transition"
-                >
-                  Try Again
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-ink/60 text-sm mb-1">
-                  AI-synthesized insights from our YouTube knowledge base
-                </p>
-                <p className="text-ink/40 text-xs mb-5">
-                  Featuring AI Explained, Lenny&apos;s Podcast, Y Combinator, IBM Technology, a16z, and more
-                </p>
-                <button
-                  onClick={() => generateAnswer()}
-                  className="px-6 py-2.5 bg-accent text-white rounded-lg font-medium hover:opacity-90 transition text-sm inline-flex items-center gap-2"
-                >
-                  <Sparkles size={16} />
-                  Generate Expert Inspirations
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+          {question.sample_answer ? (
+            <InspirationCard
+              answer={question.sample_answer}
+              onRegenerate={() => generateAnswer(true)}
+            />
+          ) : generating || streamedText ? (
+            <StreamingCard text={streamedText} generating={generating} />
+          ) : (
+            <div className="bg-cream-dark/20 border border-dashed border-cream-dark rounded-lg p-8 text-center">
+              {generationError ? (
+                <>
+                  <p className="text-red-500/70 text-sm mb-3">{generationError}</p>
+                  <button
+                    onClick={() => generateAnswer()}
+                    className="px-5 py-2 bg-cream-dark text-ink/70 rounded-lg text-sm hover:bg-cream-dark/80 transition"
+                  >
+                    Try Again
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-ink/60 text-sm mb-1">
+                    AI-synthesized insights from our YouTube knowledge base
+                  </p>
+                  <p className="text-ink/40 text-xs mb-5">
+                    Featuring AI Explained, Lenny&apos;s Podcast, Y Combinator, IBM Technology, a16z, and more
+                  </p>
+                  <button
+                    onClick={() => generateAnswer()}
+                    className="px-6 py-2.5 bg-accent text-white rounded-lg font-medium hover:opacity-90 transition text-sm inline-flex items-center gap-2"
+                  >
+                    <Sparkles size={16} />
+                    Generate Expert Inspirations
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Sub-questions (Raw Sources) */}
       {question.raw_questions.length > 0 && (
