@@ -144,7 +144,7 @@ function InspirationCard({ answer, onRegenerate }: { answer: SampleAnswer; onReg
         {onRegenerate && (
           <button
             onClick={onRegenerate}
-            className="px-3 py-1 text-accent/70 hover:text-accent hover:bg-accent/10 rounded-md transition flex items-center gap-1.5 text-xs font-medium"
+            className="px-4 py-1.5 bg-accent/10 border border-accent/30 text-accent rounded-lg transition flex items-center gap-1.5 text-sm font-medium hover:bg-accent/20"
             title="Regenerate with latest knowledge base"
           >
             <RefreshCw size={14} />

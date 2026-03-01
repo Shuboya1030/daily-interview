@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Sparkles } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Sparkles, Send } from 'lucide-react'
 
 interface Question {
   id: string
@@ -22,7 +23,15 @@ interface Filters {
   types: string[]
 }
 
+const SUGGESTION_CHIPS = [
+  'What is the responsibility of a Data PM?',
+  'How would you design an AI-powered chatbot?',
+  'Explain RAG to a non-technical stakeholder',
+  'What metrics would you track for an LLM product?',
+]
+
 export default function QuestionsPage() {
+  const router = useRouter()
   const [questions, setQuestions] = useState<Question[]>([])
   const [filters, setFilters] = useState<Filters>({ companies: [], types: [] })
   const [loading, setLoading] = useState(true)
@@ -31,6 +40,13 @@ export default function QuestionsPage() {
   // Filter states
   const [selectedCompany, setSelectedCompany] = useState('')
   const [selectedType, setSelectedType] = useState('AI Domain Knowledge')
+
+  // Ask question states
+  const [askInput, setAskInput] = useState('')
+  const [asking, setAsking] = useState(false)
+  const [streamedText, setStreamedText] = useState('')
+  const [askError, setAskError] = useState<string | null>(null)
+  const streamCardRef = useRef<HTMLDivElement>(null)
 
   // Load filters
   useEffect(() => {
@@ -71,6 +87,79 @@ export default function QuestionsPage() {
     setSelectedType('')
   }
 
+  const handleAsk = async (questionText?: string) => {
+    const text = (questionText || askInput).trim()
+    if (!text || asking) return
+
+    setAsking(true)
+    setStreamedText('')
+    setAskError(null)
+
+    // Scroll to streaming card after it renders
+    setTimeout(() => {
+      streamCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+
+    try {
+      const res = await fetch('/api/questions/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: text }),
+      })
+
+      const contentType = res.headers.get('content-type') || ''
+
+      if (contentType.includes('application/json')) {
+        const data = await res.json()
+        if (data.error) {
+          setAskError(data.error)
+          setAsking(false)
+          return
+        }
+      }
+
+      // Handle streaming response
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const payload = JSON.parse(line.slice(6))
+              if (payload.token) {
+                setStreamedText(prev => prev + payload.token)
+              }
+              if (payload.done && payload.questionId) {
+                // Navigate to the new question's detail page
+                router.push(`/questions/${payload.questionId}`)
+                return
+              }
+              if (payload.error) {
+                setAskError(payload.error)
+              }
+            } catch {
+              // skip malformed JSON
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Ask failed:', err)
+      setAskError('Failed to connect to the server')
+    } finally {
+      setAsking(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header + Stats */}
@@ -92,6 +181,80 @@ export default function QuestionsPage() {
           ))}
         </div>
       </div>
+
+      {/* Ask Any Question */}
+      <div className="bg-accent/5 border border-accent/20 rounded-lg p-6 mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles size={18} className="text-accent" />
+          <h2 className="text-lg font-semibold text-ink">Ask any AI PM interview question</h2>
+        </div>
+
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={askInput}
+            onChange={(e) => setAskInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAsk() }}
+            placeholder="e.g. What is the responsibility of a Data PM?"
+            disabled={asking}
+            className="flex-1 px-4 py-2.5 border border-cream-dark rounded-lg bg-cream focus:outline-none focus:ring-2 focus:ring-accent/40 text-ink placeholder:text-ink/40 disabled:opacity-50"
+          />
+          <button
+            onClick={() => handleAsk()}
+            disabled={asking || !askInput.trim()}
+            className="px-5 py-2.5 bg-accent text-white rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            <Send size={16} />
+            Ask
+          </button>
+        </div>
+
+        {/* Suggestion chips */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="text-xs text-ink/40 self-center mr-1">Try:</span>
+          {SUGGESTION_CHIPS.map(chip => (
+            <button
+              key={chip}
+              onClick={() => { setAskInput(chip); handleAsk(chip) }}
+              disabled={asking}
+              className="px-3 py-1.5 text-sm bg-cream border border-cream-dark rounded-full text-ink/70 hover:bg-cream-dark/50 hover:text-ink transition disabled:opacity-50"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Streaming Answer Card */}
+      {(asking || streamedText) && (
+        <div ref={streamCardRef} className="bg-cream-dark/30 border border-cream-dark rounded-lg p-6 mb-8">
+          {asking && !streamedText && (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-4 bg-cream-dark rounded w-3/4"></div>
+              <div className="h-4 bg-cream-dark rounded w-full"></div>
+              <div className="h-4 bg-cream-dark rounded w-5/6"></div>
+              <div className="h-4 bg-cream-dark rounded w-2/3"></div>
+            </div>
+          )}
+          {streamedText && (
+            <div className="prose prose-sm max-w-none text-ink/85 whitespace-pre-line leading-relaxed">
+              {streamedText}
+              {asking && <span className="inline-block w-1.5 h-4 bg-accent/60 animate-pulse ml-0.5 align-middle" />}
+            </div>
+          )}
+          <div className="mt-4 pt-3 border-t border-cream-dark flex items-center text-xs text-ink/40">
+            <Sparkles size={12} className="mr-1.5 text-accent/50" />
+            <span>{asking ? 'Generating expert inspirations...' : 'Redirecting to full answer...'}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Ask Error */}
+      {askError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 text-red-700 text-sm">
+          {askError}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-cream-dark/50 border border-cream-dark rounded-lg p-6 mb-8">
