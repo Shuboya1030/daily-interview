@@ -221,7 +221,8 @@ export default function QuestionDetailPage() {
     }
 
     try {
-      const res = await fetch(`/api/questions/${params.id}/generate-answer`, {
+      const url = `/api/questions/${params.id}/generate-answer${regenerate ? '?regenerate=true' : ''}`
+      const res = await fetch(url, {
         method: 'POST',
       })
 

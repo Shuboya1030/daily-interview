@@ -21,17 +21,21 @@ export async function POST(
 ) {
   const { id } = params
   const supabase = getSupabase()
+  const { searchParams } = new URL(request.url)
+  const regenerate = searchParams.get('regenerate') === 'true'
 
   try {
-    // 1. Check cache first
-    const { data: cached } = await supabase
-      .from('sample_answers')
-      .select('answer_text, source_videos, model_used, generated_at')
-      .eq('question_id', id)
-      .single()
+    // 1. Check cache first (skip if regenerating)
+    if (!regenerate) {
+      const { data: cached } = await supabase
+        .from('sample_answers')
+        .select('answer_text, source_videos, model_used, generated_at')
+        .eq('question_id', id)
+        .single()
 
-    if (cached) {
-      return NextResponse.json({ cached: true, ...cached })
+      if (cached) {
+        return NextResponse.json({ cached: true, ...cached })
+      }
     }
 
     // 2. Get the question text
