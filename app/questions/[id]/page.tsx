@@ -138,23 +138,19 @@ function InspirationCard({ answer, onRegenerate }: { answer: SampleAnswer; onReg
       )}
 
       <div className="mt-4 pt-3 border-t border-cream-dark flex items-center justify-between text-xs text-ink/40">
-        <span>Insights powered by AI</span>
-        <div className="flex items-center gap-3">
-          <span>
-            {new Date(answer.generated_at).toLocaleDateString('en-US', {
-              year: 'numeric', month: 'short', day: 'numeric'
-            })}
-          </span>
-          {onRegenerate && (
-            <button
-              onClick={onRegenerate}
-              className="text-ink/30 hover:text-accent transition flex items-center gap-1"
-              title="Regenerate with latest knowledge base"
-            >
-              <RefreshCw size={12} />
-            </button>
-          )}
-        </div>
+        <span>Insights powered by AI · {new Date(answer.generated_at).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'short', day: 'numeric'
+        })}</span>
+        {onRegenerate && (
+          <button
+            onClick={onRegenerate}
+            className="px-3 py-1 text-accent/70 hover:text-accent hover:bg-accent/10 rounded-md transition flex items-center gap-1.5 text-xs font-medium"
+            title="Regenerate with latest knowledge base"
+          >
+            <RefreshCw size={14} />
+            Regenerate
+          </button>
+        )}
       </div>
     </div>
   )
