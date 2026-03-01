@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
         question_type: 'AI Domain Knowledge',
         question_types: ['AI Domain Knowledge'],
         frequency: 1,
-        source: 'user',
       })
       .select('id')
       .single()
