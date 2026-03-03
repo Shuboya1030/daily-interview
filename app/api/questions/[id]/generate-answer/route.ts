@@ -51,69 +51,68 @@ export async function POST(
 
     const questionText = question.english_content || question.canonical_content
 
-    // 3. Fetch video summaries (high + medium relevance)
-    const { data: summaries } = await supabase
-      .from('video_summaries')
-      .select('summary_text, relevance_category, video_id')
-      .in('relevance_category', ['high', 'medium'])
+    // 3. Embed the question for vector search
+    const openai = getOpenAI()
+    const embeddingResponse = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: questionText,
+    })
+    const queryEmbedding = embeddingResponse.data[0].embedding
 
-    if (!summaries || summaries.length === 0) {
+    // 4. Retrieve relevant transcript chunks via pgvector similarity search
+    const { data: chunks, error: chunkErr } = await supabase
+      .rpc('match_transcript_chunks', {
+        query_embedding: JSON.stringify(queryEmbedding),
+        match_count: 10,
+        similarity_threshold: 0.3,
+      })
+
+    if (chunkErr || !chunks || chunks.length === 0) {
       return NextResponse.json(
-        { error: 'No video summaries available. Run the summarizer first.' },
+        { error: 'No relevant transcript content found.' },
         { status: 503 }
       )
     }
 
-    // Get video metadata for the summaries
-    const videoIds = summaries.map(s => s.video_id)
-    const { data: videos } = await supabase
-      .from('youtube_videos')
-      .select('id, title, channel_name, url')
-      .in('id', videoIds)
+    // 5. Build context from retrieved chunks
+    let knowledgeContext = ''
+    const sourceVideoMap = new Map<string, { title: string; url: string; channel: string }>()
 
-    const videoMap: Record<string, { title: string; channel_name: string; url: string }> = {}
-    for (const v of videos || []) {
-      videoMap[v.id] = v
+    for (const chunk of chunks) {
+      knowledgeContext += `\n---\n[Source: "${chunk.video_title}" by ${chunk.channel_name}]\n${chunk.chunk_text}\n`
+      if (!sourceVideoMap.has(chunk.video_id)) {
+        sourceVideoMap.set(chunk.video_id, {
+          title: chunk.video_title,
+          url: chunk.video_url,
+          channel: chunk.channel_name,
+        })
+      }
     }
 
-    // Build knowledge base string
-    let knowledgeBase = ''
-    const sourceVideos: { title: string; url: string; channel: string }[] = []
-    for (const s of summaries) {
-      const video = videoMap[s.video_id]
-      if (!video) continue
-      knowledgeBase += `\n---\n[${video.title}] by ${video.channel_name}\nURL: ${video.url}\n${s.summary_text}\n`
-      sourceVideos.push({
-        title: video.title,
-        url: video.url,
-        channel: video.channel_name,
-      })
-    }
+    const sourceVideos = Array.from(sourceVideoMap.values())
 
-    // 4. Build system prompt (matches generate_answers.py)
-    const systemPrompt = `You are an expert AI product management interview coach. You have a knowledge base of summaries from top AI YouTube videos by industry thought leaders.
+    // 6. Build system prompt
+    const systemPrompt = `You are an expert AI product management interview coach. You have access to specific excerpts from top AI/PM YouTube videos by industry thought leaders.
 
-Your job: generate a concise, insightful sample answer to a PM interview question.
+Your job: generate a concise, insightful sample answer to a PM interview question, grounded in the provided transcript excerpts.
 
 FORMAT (strict):
 1. A 1-2 sentence high-level insight that directly answers the question
-2. 2-3 bullet points with specific, concrete supporting insights (each bullet 1-2 sentences max)
+2. 2-3 bullet points with specific, concrete supporting details (each bullet 1-2 sentences max)
 3. A "References" line listing 2-3 YouTube videos that most informed the answer (title only, no URLs)
 
 RULES:
 - Total answer MUST be under 150 words (excluding references)
-- Each bullet should be a distinct, specific, non-overlapping insight
-- Draw on concrete concepts, frameworks, and examples from the video knowledge base
+- Ground your answer in specific details, examples, and frameworks from the transcript excerpts — quote or paraphrase specific points, do NOT generalize
+- Each bullet should be a distinct insight drawn from different sources when possible
 - Sound like a confident, knowledgeable PM candidate — no filler, no hedging
-- Prioritize practical insights over textbook definitions
-- Only cite videos that actually informed your answer
-- If the knowledge base doesn't cover the topic well, supplement with your own knowledge but note it
+- Only cite videos whose excerpts actually informed your answer
+- If the excerpts don't cover the topic well, supplement with your own knowledge but note it
 
-KNOWLEDGE BASE:
-${knowledgeBase}`
+RELEVANT TRANSCRIPT EXCERPTS:
+${knowledgeContext}`
 
-    // 5. Call OpenAI streaming API
-    const openai = getOpenAI()
+    // 7. Call OpenAI streaming API
     const stream = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
