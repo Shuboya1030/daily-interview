@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Link from 'next/link'
+import PageTracker from './components/PageTracker'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -32,16 +33,11 @@ export default function RootLayout({
                 >
                   Browse
                 </Link>
-                <Link
-                  href="/admin"
-                  className="text-xs text-ink/40 hover:text-accent transition"
-                >
-                  Dashboard
-                </Link>
               </div>
             </div>
           </div>
         </nav>
+        <PageTracker />
         <main>{children}</main>
         <footer className="border-t border-cream-dark py-8 bg-cream">
           <div className="container mx-auto px-4 text-center text-sm text-ink/60">
