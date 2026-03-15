@@ -17,6 +17,7 @@ export async function matchTranscriptChunks(
   matchCount = 10,
   similarityThreshold = 0.1
 ): Promise<ChunkResult[]> {
+  // Build vector string — only contains numbers, brackets, commas, dots, minus signs
   const vecStr = '[' + embedding.join(',') + ']'
   const dbUrl = process.env.DATABASE_URL || ''
 
@@ -28,16 +29,16 @@ export async function matchTranscriptChunks(
   try {
     await client.connect()
 
+    // Use simple query (no parameters) to bypass PgBouncer extended protocol issues with pgvector
     const { rows } = await client.query(
       `SELECT tc.id, tc.video_id, tc.chunk_index, tc.chunk_text, tc.token_count,
-              (1 - (tc.embedding <=> $1::vector(1536)))::double precision AS similarity,
+              (1 - (tc.embedding <=> '${vecStr}'::vector(1536)))::double precision AS similarity,
               yv.title AS video_title, yv.channel_name, yv.url AS video_url
        FROM transcript_chunks tc
        JOIN youtube_videos yv ON tc.video_id = yv.id
-       WHERE (1 - (tc.embedding <=> $1::vector(1536))) > $2
-       ORDER BY tc.embedding <=> $1::vector(1536)
-       LIMIT $3`,
-      [vecStr, similarityThreshold, matchCount]
+       WHERE (1 - (tc.embedding <=> '${vecStr}'::vector(1536))) > ${Number(similarityThreshold)}
+       ORDER BY tc.embedding <=> '${vecStr}'::vector(1536)
+       LIMIT ${Number(matchCount)}`
     )
 
     return rows as ChunkResult[]
