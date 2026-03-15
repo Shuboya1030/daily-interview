@@ -1,3 +1,5 @@
+import { Pool } from 'pg'
+
 export interface ChunkResult {
   id: string
   video_id: string
@@ -10,43 +12,37 @@ export interface ChunkResult {
   video_url: string
 }
 
+let pool: Pool | null = null
+
+function getPool(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 3,
+    })
+  }
+  return pool
+}
+
 export async function matchTranscriptChunks(
   embedding: number[],
   matchCount = 10,
   similarityThreshold = 0.15
 ): Promise<ChunkResult[]> {
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/match_transcript_chunks`
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const vecStr = '[' + embedding.join(',') + ']'
 
-  const body = JSON.stringify({
-    query_embedding: '[' + embedding.join(',') + ']',
-    match_count: matchCount,
-    similarity_threshold: similarityThreshold,
-  })
+  const { rows } = await getPool().query(
+    `SELECT tc.id, tc.video_id, tc.chunk_index, tc.chunk_text, tc.token_count,
+            (1 - (tc.embedding <=> $1::vector(1536)))::double precision AS similarity,
+            yv.title AS video_title, yv.channel_name, yv.url AS video_url
+     FROM transcript_chunks tc
+     JOIN youtube_videos yv ON tc.video_id = yv.id
+     WHERE (1 - (tc.embedding <=> $1::vector(1536))) > $2
+     ORDER BY tc.embedding <=> $1::vector(1536)
+     LIMIT $3`,
+    [vecStr, similarityThreshold, matchCount]
+  )
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      Prefer: 'return=representation',
-    },
-    body,
-    cache: 'no-store',
-  })
-
-  const text = await res.text()
-
-  if (!res.ok) {
-    console.error('Vector search failed:', res.status, text)
-    throw new Error(`Vector search failed: ${text}`)
-  }
-
-  try {
-    return JSON.parse(text)
-  } catch {
-    console.error('Vector search parse error:', text.slice(0, 200))
-    return []
-  }
+  return rows as ChunkResult[]
 }
