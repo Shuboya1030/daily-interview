@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
+import { matchTranscriptChunks } from '@/app/lib/vectorSearch'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -38,11 +39,7 @@ export async function POST(request: NextRequest) {
     const jdEmbedding = embeddingRes.data[0].embedding
 
     // 2. Vector search transcript chunks for expert context
-    const { data: chunks } = await supabase.rpc('match_transcript_chunks', {
-      query_embedding: '[' + jdEmbedding.join(',') + ']',
-      match_count: 8,
-      similarity_threshold: 0.15,
-    })
+    const chunks = await matchTranscriptChunks(jdEmbedding, 8, 0.15)
 
     let expertContext = ''
     if (chunks && chunks.length > 0) {

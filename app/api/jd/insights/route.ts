@@ -1,16 +1,9 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
+import { matchTranscriptChunks } from '@/app/lib/vectorSearch'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
@@ -23,7 +16,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Invalid question' }, { status: 400 })
   }
 
-  const supabase = getSupabase()
   const openai = getOpenAI()
 
   try {
@@ -34,11 +26,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 2. Vector search transcript chunks
-    const { data: chunks } = await supabase.rpc('match_transcript_chunks', {
-      query_embedding: '[' + embRes.data[0].embedding.join(',') + ']',
-      match_count: 8,
-      similarity_threshold: 0.15,
-    })
+    const chunks = await matchTranscriptChunks(embRes.data[0].embedding, 8, 0.15)
 
     if (!chunks || chunks.length === 0) {
       return Response.json({ error: 'No relevant expert content found.' }, { status: 503 })

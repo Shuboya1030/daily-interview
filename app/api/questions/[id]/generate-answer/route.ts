@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
+import { matchTranscriptChunks } from '@/app/lib/vectorSearch'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,14 +61,9 @@ export async function POST(
     const queryEmbedding = embeddingResponse.data[0].embedding
 
     // 4. Retrieve relevant transcript chunks via pgvector similarity search
-    const { data: chunks, error: chunkErr } = await supabase
-      .rpc('match_transcript_chunks', {
-        query_embedding: '[' + queryEmbedding.join(',') + ']',
-        match_count: 10,
-        similarity_threshold: 0.2,
-      })
+    const chunks = await matchTranscriptChunks(queryEmbedding, 10, 0.15)
 
-    if (chunkErr || !chunks || chunks.length === 0) {
+    if (!chunks || chunks.length === 0) {
       return NextResponse.json(
         { error: 'No relevant transcript content found.' },
         { status: 503 }
