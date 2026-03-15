@@ -1,0 +1,303 @@
+'use client'
+
+import { useState, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { Sparkles, RefreshCw, ChevronDown, ChevronUp, Quote, Download } from 'lucide-react'
+
+interface QuoteData {
+  text: string
+  video_title: string
+  channel: string
+  video_url: string
+}
+
+function OriginalQuotes({ chunks }: { chunks: QuoteData[] }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!chunks || chunks.length === 0) return null
+
+  const visible = expanded ? chunks : chunks.slice(0, 2)
+
+  return (
+    <div className="mt-4">
+      <h3 className="text-sm font-semibold text-ink/70 mb-3 flex items-center gap-1.5">
+        <Quote size={14} className="text-accent/60" />
+        Key Takeaways from Experts
+      </h3>
+      <div className="space-y-3">
+        {visible.map((chunk, i) => (
+          <div
+            key={i}
+            className="bg-cream-dark/20 border-l-2 border-accent/40 rounded-r-lg p-4"
+          >
+            <p className="text-sm text-ink/75 leading-relaxed">
+              &ldquo;{chunk.text.trim()}&rdquo;
+            </p>
+            <div className="mt-2 flex items-center justify-between">
+              <a
+                href={chunk.video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-accent hover:text-accent/80 hover:underline truncate max-w-[80%]"
+              >
+                {chunk.video_title}
+              </a>
+              <span className="text-xs text-ink/40 shrink-0 ml-2">
+                {chunk.channel}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {chunks.length > 2 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="mt-2 text-xs text-accent hover:text-accent/80 flex items-center gap-1"
+        >
+          {expanded ? (
+            <>Show less <ChevronUp size={12} /></>
+          ) : (
+            <>Show {chunks.length - 2} more quotes <ChevronDown size={12} /></>
+          )}
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default function JDQuestionDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
+      </div>
+    }>
+      <JDQuestionContent />
+    </Suspense>
+  )
+}
+
+function JDQuestionContent() {
+  const searchParams = useSearchParams()
+  const questionText = searchParams.get('text') || ''
+
+  const [generating, setGenerating] = useState(false)
+  const [insightText, setInsightText] = useState('')
+  const [quotes, setQuotes] = useState<QuoteData[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  const generateInsights = useCallback(async () => {
+    if (!questionText) return
+
+    setGenerating(true)
+    setInsightText('')
+    setQuotes([])
+    setError(null)
+    setDone(false)
+
+    try {
+      const res = await fetch('/api/jd/insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: questionText }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.error || 'Failed to generate insights')
+        setGenerating(false)
+        return
+      }
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done: streamDone, value } = await reader.read()
+        if (streamDone) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const payload = JSON.parse(line.slice(6))
+              if (payload.token) {
+                setInsightText(prev => prev + payload.token)
+              }
+              if (payload.done) {
+                setDone(true)
+                if (payload.quotes) {
+                  setQuotes(payload.quotes)
+                }
+              }
+              if (payload.error) {
+                setError(payload.error)
+              }
+            } catch {
+              // skip
+            }
+          }
+        }
+      }
+    } catch {
+      setError('Failed to connect to the server')
+    } finally {
+      setGenerating(false)
+    }
+  }, [questionText])
+
+  const exportInsights = useCallback(() => {
+    if (!insightText) return
+
+    let content = `# ${questionText}\n\n`
+    content += `## Expert Insights\n\n${insightText}\n\n`
+
+    if (quotes.length > 0) {
+      content += `## Key Takeaways\n\n`
+      for (const q of quotes) {
+        content += `> "${q.text}"\n> — ${q.channel} ([${q.video_title}](${q.video_url}))\n\n`
+      }
+    }
+
+    content += `---\nGenerated by [AI PM Prep](https://aipmprep.com)\n`
+
+    const blob = new Blob([content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `expert-insights-${Date.now()}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [questionText, insightText, quotes])
+
+  if (!questionText) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p className="text-ink/60">No question provided</p>
+        <Link href="/jd" className="text-accent hover:text-accent/80 mt-4 inline-block">
+          Back to JD Analyzer
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <Link
+        href="/jd"
+        className="text-accent hover:text-accent/80 text-sm font-medium mb-6 inline-block"
+      >
+        &larr; Back to JD Predictions
+      </Link>
+
+      {/* Question Card */}
+      <div className="bg-cream-dark/30 border border-cream-dark rounded-lg p-8 mb-8">
+        <h1 className="text-2xl font-bold text-ink mb-2">
+          {questionText}
+        </h1>
+        <span className="px-3 py-1 bg-accent/10 text-accent text-sm rounded-full">
+          Predicted from JD
+        </span>
+      </div>
+
+      {/* Expert Insights Section */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-ink mb-4">
+          Expert Inspirations
+        </h2>
+
+        {done && insightText ? (
+          <>
+            {/* Insight Card */}
+            <div className="bg-cream-dark/30 border border-cream-dark rounded-lg p-6">
+              <div className="prose prose-sm max-w-none text-ink/85 whitespace-pre-line leading-relaxed">
+                {insightText}
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-cream-dark flex items-center justify-between text-xs text-ink/40">
+                <span>Insights powered by AI + YouTube expert knowledge base</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportInsights}
+                    className="px-3 py-1.5 bg-cream-dark text-ink/60 rounded-lg transition flex items-center gap-1.5 text-sm hover:bg-cream-dark/80"
+                    title="Export as Markdown"
+                  >
+                    <Download size={14} />
+                    Export
+                  </button>
+                  <button
+                    onClick={generateInsights}
+                    className="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent rounded-lg transition flex items-center gap-1.5 text-sm font-medium hover:bg-accent/20"
+                  >
+                    <RefreshCw size={14} />
+                    Regenerate
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Takeaways */}
+            <OriginalQuotes chunks={quotes} />
+          </>
+        ) : generating || insightText ? (
+          /* Streaming */
+          <div className="bg-cream-dark/30 border border-cream-dark rounded-lg p-6">
+            {generating && !insightText && (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-4 bg-cream-dark rounded w-3/4"></div>
+                <div className="h-4 bg-cream-dark rounded w-full"></div>
+                <div className="h-4 bg-cream-dark rounded w-5/6"></div>
+              </div>
+            )}
+            {insightText && (
+              <div className="prose prose-sm max-w-none text-ink/85 whitespace-pre-line leading-relaxed">
+                {insightText}
+                <span className="inline-block w-1.5 h-4 bg-accent/60 animate-pulse ml-0.5 align-middle" />
+              </div>
+            )}
+            <div className="mt-4 pt-3 border-t border-cream-dark flex items-center text-xs text-ink/40">
+              <Sparkles size={12} className="mr-1.5 text-accent/50" />
+              Generating expert insights...
+            </div>
+          </div>
+        ) : (
+          /* Generate button */
+          <div className="bg-cream-dark/20 border border-dashed border-cream-dark rounded-lg p-8 text-center">
+            {error ? (
+              <>
+                <p className="text-red-500/70 text-sm mb-3">{error}</p>
+                <button
+                  onClick={generateInsights}
+                  className="px-5 py-2 bg-cream-dark text-ink/70 rounded-lg text-sm hover:bg-cream-dark/80 transition"
+                >
+                  Try Again
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-ink/60 text-sm mb-1">
+                  AI-synthesized insights from our YouTube knowledge base
+                </p>
+                <p className="text-ink/40 text-xs mb-5">
+                  Featuring AI Explained, Lenny&apos;s Podcast, Y Combinator, a16z, and more
+                </p>
+                <button
+                  onClick={generateInsights}
+                  className="px-6 py-2.5 bg-accent text-white rounded-lg font-medium hover:opacity-90 transition text-sm inline-flex items-center gap-2"
+                >
+                  <Sparkles size={16} />
+                  Generate Expert Insights
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
