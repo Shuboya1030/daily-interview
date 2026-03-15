@@ -28,9 +28,12 @@ function getPool(): Pool {
 export async function matchTranscriptChunks(
   embedding: number[],
   matchCount = 10,
-  similarityThreshold = 0.15
+  similarityThreshold = 0.1
 ): Promise<ChunkResult[]> {
   const vecStr = '[' + embedding.join(',') + ']'
+
+  console.log('[vectorSearch] dims:', embedding.length, 'threshold:', similarityThreshold, 'limit:', matchCount)
+  console.log('[vectorSearch] DATABASE_URL set:', !!process.env.DATABASE_URL)
 
   const { rows } = await getPool().query(
     `SELECT tc.id, tc.video_id, tc.chunk_index, tc.chunk_text, tc.token_count,
@@ -44,5 +47,6 @@ export async function matchTranscriptChunks(
     [vecStr, similarityThreshold, matchCount]
   )
 
+  console.log('[vectorSearch] results:', rows.length)
   return rows as ChunkResult[]
 }
