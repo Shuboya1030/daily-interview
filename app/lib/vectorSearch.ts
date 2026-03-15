@@ -36,21 +36,18 @@ export async function matchTranscriptChunks(
 ): Promise<ChunkResult[]> {
   const vecStr = '[' + embedding.join(',') + ']'
 
-  console.log('[vectorSearch] dims:', embedding.length, 'threshold:', similarityThreshold, 'limit:', matchCount)
-  console.log('[vectorSearch] DATABASE_URL set:', !!process.env.DATABASE_URL)
+  // Use text interpolation to avoid PgBouncer/pgvector parameter binding issues
+  // The vector string only contains numbers, brackets, commas, and dots — safe to interpolate
+  const sql = `
+    SELECT tc.id, tc.video_id, tc.chunk_index, tc.chunk_text, tc.token_count,
+           (1 - (tc.embedding <=> '${vecStr}'::vector(1536)))::double precision AS similarity,
+           yv.title AS video_title, yv.channel_name, yv.url AS video_url
+    FROM transcript_chunks tc
+    JOIN youtube_videos yv ON tc.video_id = yv.id
+    WHERE (1 - (tc.embedding <=> '${vecStr}'::vector(1536))) > ${similarityThreshold}
+    ORDER BY tc.embedding <=> '${vecStr}'::vector(1536)
+    LIMIT ${matchCount}`
 
-  const { rows } = await getPool().query(
-    `SELECT tc.id, tc.video_id, tc.chunk_index, tc.chunk_text, tc.token_count,
-            (1 - (tc.embedding <=> $1::vector(1536)))::double precision AS similarity,
-            yv.title AS video_title, yv.channel_name, yv.url AS video_url
-     FROM transcript_chunks tc
-     JOIN youtube_videos yv ON tc.video_id = yv.id
-     WHERE (1 - (tc.embedding <=> $1::vector(1536))) > $2
-     ORDER BY tc.embedding <=> $1::vector(1536)
-     LIMIT $3`,
-    [vecStr, similarityThreshold, matchCount]
-  )
-
-  console.log('[vectorSearch] results:', rows.length)
+  const { rows } = await getPool().query(sql)
   return rows as ChunkResult[]
 }
