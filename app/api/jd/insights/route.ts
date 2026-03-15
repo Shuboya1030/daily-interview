@@ -25,37 +25,11 @@ export async function POST(request: NextRequest) {
       input: question,
     })
 
-    // 2. Vector search transcript chunks — inline fetch for debugging
-    const rpcUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/search_chunks`
-    const rpcKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    const vecStr = '[' + embRes.data[0].embedding.join(',') + ']'
+    // 2. Vector search transcript chunks
+    const chunks = await matchTranscriptChunks(embRes.data[0].embedding, 8, 0.1)
 
-    const rpcRes = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: rpcKey,
-        Authorization: `Bearer ${rpcKey}`,
-      },
-      body: JSON.stringify({ query_vec: vecStr, k: 8, min_similarity: 0.1 }),
-      cache: 'no-store',
-    })
-
-    const rpcBody = await rpcRes.text()
-    let chunks: any[] = []
-    try {
-      chunks = JSON.parse(rpcBody)
-    } catch {
-      return Response.json({ error: 'Parse error', rpcStatus: rpcRes.status, body: rpcBody.slice(0, 300) }, { status: 503 })
-    }
-
-    if (!Array.isArray(chunks) || chunks.length === 0) {
-      return Response.json({
-        error: 'No relevant expert content found.',
-        rpcStatus: rpcRes.status,
-        rpcBodyPreview: rpcBody.slice(0, 300),
-        dims: embRes.data[0].embedding.length,
-      }, { status: 503 })
+    if (!chunks || chunks.length === 0) {
+      return Response.json({ error: 'No relevant expert content found.' }, { status: 503 })
     }
 
     // 3. Build context
