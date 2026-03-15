@@ -22,12 +22,20 @@ export default function Home() {
               </span>
               .
             </p>
-            <Link
-              href="/questions"
-              className="mt-8 inline-block px-8 py-3 bg-accent text-white rounded-lg font-medium hover:opacity-90 transition text-lg"
-            >
-              Explore Questions &rarr;
-            </Link>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href="/questions"
+                className="px-8 py-3 bg-accent text-white rounded-lg font-medium hover:opacity-90 transition text-lg"
+              >
+                Explore Questions &rarr;
+              </Link>
+              <Link
+                href="/jd"
+                className="px-8 py-3 border-2 border-accent text-accent rounded-lg font-medium hover:bg-accent/10 transition text-lg"
+              >
+                Analyze Your JD &rarr;
+              </Link>
+            </div>
           </div>
 
           {/* Right — Hero image */}

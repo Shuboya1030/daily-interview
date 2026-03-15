@@ -33,6 +33,12 @@ export default function RootLayout({
                 >
                   Browse
                 </Link>
+                <Link
+                  href="/jd"
+                  className="text-sm font-medium text-ink hover:text-accent transition"
+                >
+                  JD Analyzer
+                </Link>
               </div>
             </div>
           </div>
