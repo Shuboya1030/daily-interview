@@ -49,6 +49,22 @@ export async function GET() {
       helperError = e.message
     }
 
+    // Direct pg test
+    const { Client } = await import('pg')
+    let pgTestResult = 'not run'
+    try {
+      const c = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+      await c.connect()
+      const { rows: countRows } = await c.query('SELECT COUNT(*) as cnt FROM transcript_chunks')
+      const { rows: simRows } = await c.query(
+        `SELECT (1 - (embedding <=> '${vecStr}'::vector(1536)))::float as sim FROM transcript_chunks ORDER BY embedding <=> '${vecStr}'::vector(1536) LIMIT 3`
+      )
+      pgTestResult = `count=${countRows[0]?.cnt}, top_sims=${simRows.map((r: any) => r.sim?.toFixed(4)).join(',')}`
+      await c.end()
+    } catch (e: any) {
+      pgTestResult = `error: ${e.message}`
+    }
+
     return NextResponse.json({
       embedding_length: embedding.length,
       embedding_sample: embedding.slice(0, 3),
@@ -62,7 +78,8 @@ export async function GET() {
         supabase_url: supabaseUrl,
         has_service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         key_preview: key.substring(0, 20) + '...',
-      }
+      },
+      pg_direct_test: pgTestResult,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message, stack: error.stack?.split('\n').slice(0, 3) }, { status: 500 })
