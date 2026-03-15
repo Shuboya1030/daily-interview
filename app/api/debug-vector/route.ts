@@ -49,20 +49,23 @@ export async function GET() {
       helperError = e.message
     }
 
-    // Direct pg test
+    // Direct pg test - try both ports
     const { Client } = await import('pg')
-    let pgTestResult = 'not run'
-    try {
-      const c = new Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
-      await c.connect()
-      const { rows: countRows } = await c.query('SELECT COUNT(*) as cnt FROM transcript_chunks')
-      const { rows: simRows } = await c.query(
-        `SELECT (1 - (embedding <=> '${vecStr}'::vector(1536)))::float as sim FROM transcript_chunks ORDER BY embedding <=> '${vecStr}'::vector(1536) LIMIT 3`
-      )
-      pgTestResult = `count=${countRows[0]?.cnt}, top_sims=${simRows.map((r: any) => r.sim?.toFixed(4)).join(',')}`
-      await c.end()
-    } catch (e: any) {
-      pgTestResult = `error: ${e.message}`
+    const dbUrl = process.env.DATABASE_URL || ''
+    let pgTestResult: Record<string, string> = {}
+
+    for (const [label, url] of [['port5432', dbUrl], ['port6543', dbUrl.replace(':5432/', ':6543/')]]) {
+      try {
+        const c = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } })
+        await c.connect()
+        const { rows: simRows } = await c.query(
+          `SELECT (1 - (embedding <=> '${vecStr}'::vector(1536)))::float as sim FROM transcript_chunks ORDER BY embedding <=> '${vecStr}'::vector(1536) LIMIT 3`
+        )
+        pgTestResult[label] = `sims=${simRows.map((r: any) => r.sim?.toFixed(4)).join(',') || 'empty'}`
+        await c.end()
+      } catch (e: any) {
+        pgTestResult[label] = `error: ${e.message}`
+      }
     }
 
     return NextResponse.json({
@@ -79,7 +82,7 @@ export async function GET() {
         has_service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         key_preview: key.substring(0, 20) + '...',
       },
-      pg_direct_test: pgTestResult,
+      pg_tests: pgTestResult,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message, stack: error.stack?.split('\n').slice(0, 3) }, { status: 500 })
