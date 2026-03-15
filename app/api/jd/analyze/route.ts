@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Vector search transcript chunks for expert context
     const { data: chunks } = await supabase.rpc('match_transcript_chunks', {
-      query_embedding: JSON.stringify(jdEmbedding),
+      query_embedding: '[' + jdEmbedding.join(',') + ']',
       match_count: 8,
-      similarity_threshold: 0.25,
+      similarity_threshold: 0.15,
     })
 
     let expertContext = ''

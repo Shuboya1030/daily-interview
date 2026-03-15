@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
 
     // 2. Vector search transcript chunks
     const { data: chunks } = await supabase.rpc('match_transcript_chunks', {
-      query_embedding: JSON.stringify(embRes.data[0].embedding),
+      query_embedding: '[' + embRes.data[0].embedding.join(',') + ']',
       match_count: 8,
-      similarity_threshold: 0.25,
+      similarity_threshold: 0.15,
     })
 
     if (!chunks || chunks.length === 0) {

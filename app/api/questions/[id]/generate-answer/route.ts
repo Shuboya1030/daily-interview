@@ -62,9 +62,9 @@ export async function POST(
     // 4. Retrieve relevant transcript chunks via pgvector similarity search
     const { data: chunks, error: chunkErr } = await supabase
       .rpc('match_transcript_chunks', {
-        query_embedding: JSON.stringify(queryEmbedding),
+        query_embedding: '[' + queryEmbedding.join(',') + ']',
         match_count: 10,
-        similarity_threshold: 0.3,
+        similarity_threshold: 0.2,
       })
 
     if (chunkErr || !chunks || chunks.length === 0) {
