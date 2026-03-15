@@ -175,7 +175,7 @@ function OriginalQuotes({ chunks }: { chunks: SourceChunk[] }) {
     <div className="mt-4">
       <h3 className="text-sm font-semibold text-ink/70 mb-3 flex items-center gap-1.5">
         <Quote size={14} className="text-accent/60" />
-        Original Quotes from Experts
+        Key Takeaways from Experts
       </h3>
       <div className="space-y-3">
         {visible.map((chunk, i) => (

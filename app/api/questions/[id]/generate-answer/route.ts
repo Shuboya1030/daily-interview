@@ -154,7 +154,43 @@ ${knowledgeContext}`
             }
           }
 
-          // 7. Save to DB after streaming completes
+          // 7. Enhance raw quotes into polished key takeaways
+          const quotesPrompt = topChunks.map((c, i) =>
+            `[${i + 1}] From "${c.video_title}" by ${c.channel}:\n${c.text}`
+          ).join('\n\n---\n\n')
+
+          const quotesResponse = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are distilling raw YouTube transcript excerpts into crisp, quotable key takeaways.
+
+For each excerpt, produce exactly ONE polished sentence (max 30 words) that:
+- Captures the core insight in the speaker's voice
+- Reads like a memorable quote you'd highlight in a book
+- Preserves the original meaning — do NOT invent new ideas
+
+Respond with a JSON array of strings, one per excerpt, in the same order. No explanation, just the JSON array.`,
+              },
+              { role: 'user', content: quotesPrompt },
+            ],
+            temperature: 0.2,
+            max_tokens: 500,
+          })
+
+          let enhancedChunks = topChunks
+          try {
+            const raw = quotesResponse.choices[0]?.message?.content || '[]'
+            const polished: string[] = JSON.parse(raw.replace(/```json?\n?/g, '').replace(/```/g, '').trim())
+            if (Array.isArray(polished) && polished.length === topChunks.length) {
+              enhancedChunks = topChunks.map((c, i) => ({ ...c, text: polished[i] }))
+            }
+          } catch {
+            // If parsing fails, keep original chunks
+          }
+
+          // 8. Save to DB
           await supabase
             .from('sample_answers')
             .upsert(
@@ -162,7 +198,7 @@ ${knowledgeContext}`
                 question_id: id,
                 answer_text: fullAnswer,
                 source_videos: sourceVideos,
-                source_chunks: topChunks,
+                source_chunks: enhancedChunks,
                 model_used: 'gpt-4o-mini',
                 generated_at: new Date().toISOString(),
               },
@@ -170,7 +206,7 @@ ${knowledgeContext}`
             )
 
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ done: true, source_chunks: topChunks })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ done: true, source_chunks: enhancedChunks })}\n\n`)
           )
           controller.close()
         } catch (err: any) {
