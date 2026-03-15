@@ -44,7 +44,7 @@ export async function GET() {
     let helperResult: any[] = []
     let helperError: string | null = null
     try {
-      helperResult = await matchTranscriptChunks(embedding, 3, 0.0)
+      helperResult = await matchTranscriptChunks(embedding, 5, -1)
     } catch (e: any) {
       helperError = e.message
     }
