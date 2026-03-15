@@ -16,10 +16,14 @@ let pool: Pool | null = null
 
 function getPool(): Pool {
   if (!pool) {
+    // Use session mode pooler (port 6543) for pgvector compatibility
+    const dbUrl = process.env.DATABASE_URL || ''
+    const sessionUrl = dbUrl.includes(':6543') ? dbUrl : dbUrl.replace(':5432/', ':6543/')
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: sessionUrl + (sessionUrl.includes('?') ? '&' : '?') + 'pgbouncer=true',
       ssl: { rejectUnauthorized: false },
       max: 3,
+      idleTimeoutMillis: 10000,
     })
   }
   return pool
