@@ -19,8 +19,8 @@ export async function matchTranscriptChunks(
 ): Promise<ChunkResult[]> {
   // Build vector string — only contains numbers, brackets, commas, dots, minus signs
   const vecStr = '[' + embedding.join(',') + ']'
-  // Use session mode pooler (port 6543) for pgvector compatibility
-  const dbUrl = (process.env.DATABASE_URL || '').replace(':5432/', ':6543/')
+  // Use direct database connection (not pooler) for pgvector compatibility
+  const dbUrl = process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL || ''
 
   const client = new Client({
     connectionString: dbUrl,
