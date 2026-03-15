@@ -114,7 +114,9 @@ INSTRUCTIONS:
   2. A brief "Why this matters" explanation (1 sentence) connecting the question to the JD requirements
   3. A difficulty tag: [Foundational] [Intermediate] [Advanced]
 - Order from most likely to be asked to least likely
-- Mix question types: product design, behavioral, technical, strategy, metrics
+- ONLY generate questions where industry expert opinions and frameworks add value:
+  Product Strategy, Product Design, AI/Technical Domain, Metrics & Analytics, Market Analysis
+- DO NOT generate behavioral questions ("tell me about a time...") or situational/hypothetical personal questions — these cannot be answered with expert insights
 - Ground predictions in the expert insights and real questions when relevant
 - Be specific to the role — not generic PM questions
 
