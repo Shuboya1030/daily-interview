@@ -10,7 +10,7 @@ export async function GET() {
 
     const emb = await openai.embeddings.create({
       model: 'text-embedding-3-small',
-      input: 'AI product management',
+      input: 'How would you prioritize features for an AI product?',
     })
 
     const embedding = emb.data[0].embedding
