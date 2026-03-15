@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 2. Vector search transcript chunks
-    const chunks = await matchTranscriptChunks(embRes.data[0].embedding, 8, 0.15)
+    const chunks = await matchTranscriptChunks(embRes.data[0].embedding, 8, 0.1)
 
     if (!chunks || chunks.length === 0) {
       return Response.json({ error: 'No relevant expert content found.' }, { status: 503 })

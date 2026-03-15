@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const jdEmbedding = embeddingRes.data[0].embedding
 
     // 2. Vector search transcript chunks for expert context
-    const chunks = await matchTranscriptChunks(jdEmbedding, 8, 0.15)
+    const chunks = await matchTranscriptChunks(jdEmbedding, 8, 0.1)
 
     let expertContext = ''
     if (chunks && chunks.length > 0) {

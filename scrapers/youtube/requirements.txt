@@ -1,0 +1,7 @@
+# AI Pulse — YouTube pipeline dependencies
+google-api-python-client>=2.100.0
+youtube-transcript-api>=0.6.1
+openai>=1.30.0
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.0
+numpy>=1.24.0

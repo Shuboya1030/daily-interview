@@ -61,7 +61,7 @@ export async function POST(
     const queryEmbedding = embeddingResponse.data[0].embedding
 
     // 4. Retrieve relevant transcript chunks via pgvector similarity search
-    const chunks = await matchTranscriptChunks(queryEmbedding, 10, 0.15)
+    const chunks = await matchTranscriptChunks(queryEmbedding, 10, 0.1)
 
     if (!chunks || chunks.length === 0) {
       return NextResponse.json(

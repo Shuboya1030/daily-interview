@@ -86,6 +86,7 @@ CHANNEL_IDS = {
     "Y Combinator": "UCcefcZRL2oaA_uBNeo5UOWg",
     "a16z": "UCM4GYACzXMRKPFHLGJqCFEg",
     "Two Minute Papers": "UCbfYPyITQ-7l4upoX8nvctg",
+    "小军说": "UC3Sv1JuKpbOx3csUO8FAo5g",
 }
 
 

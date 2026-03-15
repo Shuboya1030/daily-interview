@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(python:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next build:*)",
+      "Bash(npx next dev -p 3001)",
+      "Bash(npx next dev:*)",
+      "Bash(netstat:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(gh auth:*)",
+      "Bash(GIT_TERMINAL_PROMPT=0 gh repo sync:*)",
+      "Bash(git -c \"credential.helper=!gh auth git-credential\" push origin main)",
+      "Bash(git remote set-url:*)",
+      "Bash(GIT_ASKPASS= GIT_TERMINAL_PROMPT=0 git -c \"credential.https://github.com.helper=!\"\"C:/Program Files/GitHub CLI/gh.exe\"\" auth git-credential\" -c \"credential.https://github.com.username=Shuboya1030\" push origin main)",
+      "Bash(npx vercel:*)",
+      "WebFetch(domain:daily-interview-f51bjqzia-sueboyas-projects.vercel.app)",
+      "Bash(git -c \"credential.https://github.com.helper=!\"\"C:/Program Files/GitHub CLI/gh.exe\"\" auth git-credential\" -c \"credential.https://github.com.username=Shuboya1030\" push origin main)",
+      "Bash(echo:*)",
+      "Bash(git diff:*)",
+      "WebFetch(domain:www.youtube.com)",
+      "Bash(/c/Users/shuyazong/AppData/Local/Python/bin/python3:*)",
+      "Bash(PYTHONIOENCODING=utf-8 /c/Users/shuyazong/AppData/Local/Python/bin/python3:*)",
+      "WebFetch(domain:aipmprep.com)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(PGPASSWORD=\"8Y3qw.pvGGxYzxf\" psql:*)",
+      "Bash(cmd.exe /c \"where python\")",
+      "Bash(py:*)"
+    ]
+  }
+}
