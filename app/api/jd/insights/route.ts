@@ -26,15 +26,10 @@ export async function POST(request: NextRequest) {
     })
 
     // 2. Vector search transcript chunks
-    let chunks: Awaited<ReturnType<typeof matchTranscriptChunks>> = []
-    try {
-      chunks = await matchTranscriptChunks(embRes.data[0].embedding, 8, 0.1)
-    } catch (searchErr: any) {
-      return Response.json({ error: `Vector search error: ${searchErr.message}`, db_url_set: !!process.env.DATABASE_URL }, { status: 503 })
-    }
+    const chunks = await matchTranscriptChunks(embRes.data[0].embedding, 8, 0.1)
 
     if (!chunks || chunks.length === 0) {
-      return Response.json({ error: 'No relevant expert content found.', embedding_dims: embRes.data[0].embedding.length, db_url_set: !!process.env.DATABASE_URL }, { status: 503 })
+      return Response.json({ error: 'No relevant expert content found.' }, { status: 503 })
     }
 
     // 3. Build context
