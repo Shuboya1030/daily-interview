@@ -70,7 +70,7 @@ export async function GET(
     // Get sample answer if available
     const { data: sampleAnswer } = await supabase
       .from('sample_answers')
-      .select('answer_text, source_videos, model_used, generated_at')
+      .select('answer_text, source_videos, source_chunks, model_used, generated_at')
       .eq('question_id', id)
       .single()
 
@@ -88,6 +88,7 @@ export async function GET(
       sample_answer: sampleAnswer ? {
         answer_text: sampleAnswer.answer_text,
         source_videos: sampleAnswer.source_videos,
+        source_chunks: sampleAnswer.source_chunks || [],
         model_used: sampleAnswer.model_used,
         generated_at: sampleAnswer.generated_at,
       } : null,

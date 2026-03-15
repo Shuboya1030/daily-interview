@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, RefreshCw } from 'lucide-react'
+import { Sparkles, RefreshCw, ChevronDown, ChevronUp, Quote } from 'lucide-react'
 
 interface RawQuestion {
   id: string
@@ -18,9 +18,18 @@ interface RawQuestion {
   similarity_score: number
 }
 
+interface SourceChunk {
+  text: string
+  video_title: string
+  channel: string
+  video_url: string
+  similarity: number
+}
+
 interface SampleAnswer {
   answer_text: string
   source_videos: { title: string; url: string; channel: string }[]
+  source_chunks: SourceChunk[]
   model_used: string
   generated_at: string
 }
@@ -156,6 +165,59 @@ function InspirationCard({ answer, onRegenerate }: { answer: SampleAnswer; onReg
   )
 }
 
+function OriginalQuotes({ chunks }: { chunks: SourceChunk[] }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!chunks || chunks.length === 0) return null
+
+  const visible = expanded ? chunks : chunks.slice(0, 2)
+
+  return (
+    <div className="mt-4">
+      <h3 className="text-sm font-semibold text-ink/70 mb-3 flex items-center gap-1.5">
+        <Quote size={14} className="text-accent/60" />
+        Original Quotes from Experts
+      </h3>
+      <div className="space-y-3">
+        {visible.map((chunk, i) => (
+          <div
+            key={i}
+            className="bg-cream-dark/20 border-l-2 border-accent/40 rounded-r-lg p-4"
+          >
+            <p className="text-sm text-ink/75 leading-relaxed line-clamp-4">
+              &ldquo;{chunk.text.trim()}&rdquo;
+            </p>
+            <div className="mt-2 flex items-center justify-between">
+              <a
+                href={chunk.video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-accent hover:text-accent/80 hover:underline truncate max-w-[80%]"
+              >
+                {chunk.video_title}
+              </a>
+              <span className="text-xs text-ink/40 shrink-0 ml-2">
+                {chunk.channel}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {chunks.length > 2 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="mt-2 text-xs text-accent hover:text-accent/80 flex items-center gap-1"
+        >
+          {expanded ? (
+            <>Show less <ChevronUp size={12} /></>
+          ) : (
+            <>Show {chunks.length - 2} more quotes <ChevronDown size={12} /></>
+          )}
+        </button>
+      )}
+    </div>
+  )
+}
+
 function StreamingCard({ text, generating }: { text: string; generating: boolean }) {
   return (
     <div className="bg-cream-dark/30 border border-cream-dark rounded-lg p-6">
@@ -236,6 +298,7 @@ export default function QuestionDetailPage() {
           sample_answer: {
             answer_text: data.answer_text,
             source_videos: data.source_videos || [],
+            source_chunks: data.source_chunks || [],
             model_used: data.model_used,
             generated_at: data.generated_at,
           }
@@ -383,10 +446,13 @@ export default function QuestionDetailPage() {
           </h2>
 
           {question.sample_answer ? (
-            <InspirationCard
-              answer={question.sample_answer}
-              onRegenerate={() => generateAnswer(true)}
-            />
+            <>
+              <InspirationCard
+                answer={question.sample_answer}
+                onRegenerate={() => generateAnswer(true)}
+              />
+              <OriginalQuotes chunks={question.sample_answer.source_chunks || []} />
+            </>
           ) : generating || streamedText ? (
             <StreamingCard text={streamedText} generating={generating} />
           ) : (

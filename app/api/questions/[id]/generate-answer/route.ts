@@ -29,7 +29,7 @@ export async function POST(
     if (!regenerate) {
       const { data: cached } = await supabase
         .from('sample_answers')
-        .select('answer_text, source_videos, model_used, generated_at')
+        .select('answer_text, source_videos, source_chunks, model_used, generated_at')
         .eq('question_id', id)
         .single()
 
@@ -77,6 +77,7 @@ export async function POST(
     // 5. Build context from retrieved chunks
     let knowledgeContext = ''
     const sourceVideoMap = new Map<string, { title: string; url: string; channel: string }>()
+    const sourceChunks: { text: string; video_title: string; channel: string; video_url: string; similarity: number }[] = []
 
     for (const chunk of chunks) {
       knowledgeContext += `\n---\n[Source: "${chunk.video_title}" by ${chunk.channel_name}]\n${chunk.chunk_text}\n`
@@ -87,7 +88,19 @@ export async function POST(
           channel: chunk.channel_name,
         })
       }
+      sourceChunks.push({
+        text: chunk.chunk_text,
+        video_title: chunk.video_title,
+        channel: chunk.channel_name,
+        video_url: chunk.video_url,
+        similarity: chunk.similarity,
+      })
     }
+
+    // Keep top 5 most relevant chunks for display
+    const topChunks = sourceChunks
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 5)
 
     const sourceVideos = Array.from(sourceVideoMap.values())
 
@@ -149,6 +162,7 @@ ${knowledgeContext}`
                 question_id: id,
                 answer_text: fullAnswer,
                 source_videos: sourceVideos,
+                source_chunks: topChunks,
                 model_used: 'gpt-4o-mini',
                 generated_at: new Date().toISOString(),
               },
@@ -156,7 +170,7 @@ ${knowledgeContext}`
             )
 
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ done: true, source_chunks: topChunks })}\n\n`)
           )
           controller.close()
         } catch (err: any) {
