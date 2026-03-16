@@ -39,7 +39,7 @@ export default function QuestionsPage() {
 
   // Filter states
   const [selectedCompany, setSelectedCompany] = useState('')
-  const [selectedType, setSelectedType] = useState('AI Domain Knowledge')
+  const [selectedType, setSelectedType] = useState('AI-related')
 
   // Ask question states
   const [askInput, setAskInput] = useState('')
@@ -301,7 +301,7 @@ export default function QuestionsPage() {
               <option value="">All Types</option>
               {filters.types.map(type => (
                 <option key={type} value={type}>
-                  {type}{type === 'AI Domain Knowledge' ? ' — Expert Inspirations available' : ''}
+                  {type}{type === 'AI-related' ? ' — Expert Inspirations available' : ''}
                 </option>
               ))}
             </select>
@@ -323,7 +323,7 @@ export default function QuestionsPage() {
       ) : (
         <div className="space-y-4">
           {questions.map((question) => {
-            const isAI = (question.question_types || []).includes('AI Domain Knowledge')
+            const isAI = (question.question_types || []).includes('AI-related')
             return (
               <Link
                 key={question.id}

@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
       .insert({
         canonical_content: questionText,
         english_content: questionText,
-        question_type: 'AI Domain Knowledge',
-        question_types: ['AI Domain Knowledge'],
+        question_type: 'AI-related',
+        question_types: ['AI-related'],
         frequency: 1,
       })
       .select('id')

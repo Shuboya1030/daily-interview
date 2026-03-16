@@ -377,7 +377,7 @@ export default function QuestionDetailPage() {
     )
   }
 
-  const isAIDomainKnowledge = (question.question_types || []).includes('AI Domain Knowledge')
+  const isAIDomainKnowledge = (question.question_types || []).includes('AI-related')
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -438,7 +438,7 @@ export default function QuestionDetailPage() {
         )}
       </div>
 
-      {/* Expert Inspirations Section — only for AI Domain Knowledge questions */}
+      {/* Expert Inspirations Section — only for AI-related questions */}
       {isAIDomainKnowledge && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-ink mb-4">
